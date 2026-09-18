@@ -1,6 +1,8 @@
-# Strange Matter Mod
+# Anomalous Matter Mod
 
 A Minecraft 1.20.1 Forge mod that introduces reality-bending anomalies into the world. Study, contain, and harness these mysterious phenomena through a comprehensive research system.
+
+Maintained fork of the Strange Matter mod. Internally, it retains the Strange Matter namespace.
 
 ## Overview
 
@@ -208,7 +210,8 @@ MIT License - see LICENSE file for details.
 
 ## Author
 
-**Hexvane** - Lead developer and concept creator
+**Hexvane** - Original author and concept creator
+**Mitemi** - Current maintainer
 
 ## Contributing
 
