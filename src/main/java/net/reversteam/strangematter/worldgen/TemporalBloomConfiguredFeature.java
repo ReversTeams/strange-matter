@@ -42,7 +42,7 @@ public class TemporalBloomConfiguredFeature extends BaseAnomalyConfiguredFeature
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, origin, random);
+        placeOres(level, anomalyPos, random, StrangeMatterMod.CHRONO_SHARD_CRYSTAL.get());
         
         // Place temporal-themed terrain (wheat fields) - special terrain for temporal blooms
         placeTemporalTerrain(level, origin, random);

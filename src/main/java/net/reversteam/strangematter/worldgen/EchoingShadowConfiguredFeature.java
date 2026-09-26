@@ -42,7 +42,7 @@ public class EchoingShadowConfiguredFeature extends BaseAnomalyConfiguredFeature
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, origin, random);
+        placeOres(level, anomalyPos, random, StrangeMatterMod.SHADE_SHARD_CRYSTAL.get());
         
         return true;
     }

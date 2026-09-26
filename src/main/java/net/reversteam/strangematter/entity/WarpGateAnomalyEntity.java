@@ -310,7 +310,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 List<WarpGateAnomalyEntity> nearbyGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class, searchArea);
                 
                 
-                if (nearbyGates.isEmpty()) {
+                                if (nearbyGates.isEmpty()) {
                     
                     // Calculate the ground position for terrain modification (one block below the entity spawn position)
                     BlockPos groundPos = new BlockPos(entitySpawnPos.getX(), surfaceY, entitySpawnPos.getZ());
@@ -320,8 +320,16 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                     net.minecraft.util.RandomSource randomSource = serverLevel.getRandom();
                     net.reversteam.strangematter.worldgen.WorldGenUtils.placeAnomalousGrassPatch(
                         serverLevel, groundPos, 5, 0.8f, randomSource);
+                    
                     net.reversteam.strangematter.worldgen.WorldGenUtils.placeAnomalyOres(
-                        serverLevel, groundPos, 5, randomSource, StrangeMatterMod.SPATIAL_SHARD_ORE_BLOCK.get());
+                        serverLevel, 
+                        groundPos, 
+                        5, 
+                        randomSource, 
+                        StrangeMatterMod.SPATIAL_SHARD_ORE_BLOCK.get(),
+                        StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get(),
+                        randomSource.nextBoolean()
+                    );
                     
                     // Spawn the warp gate entity at the center
                     WarpGateAnomalyEntity newWarpGate = StrangeMatterMod.WARP_GATE_ANOMALY_ENTITY.get().create(serverLevel);
@@ -331,7 +339,6 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                         serverLevel.addFreshEntity(newWarpGate);
                         
                         return pairWithGate(newWarpGate);
-                    } else {
                     }
                 }
             }

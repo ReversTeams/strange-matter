@@ -42,7 +42,7 @@ public class ThoughtwellConfiguredFeature extends BaseAnomalyConfiguredFeature {
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, origin, random);
+        placeOres(level, anomalyPos, random, StrangeMatterMod.INSIGHT_SHARD_CRYSTAL.get());
         
         // Place cognitive-themed terrain (bookshelves, lecterns) - special terrain for thoughtwell
         placeCognitiveTerrain(level, origin, random);

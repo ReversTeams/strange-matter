@@ -226,118 +226,106 @@ public class WorldGenUtils {
     }
     
     /**
-     * Places resonite ore and shard ore underneath the anomaly.
-     * Uses config values for ore spawn chances and replacement blocks.
-     * 
-     * @param level The world generation level
-     * @param origin The center position for ore placement
-     * @param radius The radius of the circle
-     * @param random The random source for ore placement
-     * @param shardOreBlock The shard ore block type to place
+     * Places anomaly ores concentrated below the anomaly with depth-based probability.
+     * 50% chance to generate a small crater with ores and a shard crystal on top.
      */
-    public static void placeAnomalyOres(WorldGenLevel level, BlockPos origin, int radius, RandomSource random, Block shardOreBlock) {
+    public static void placeAnomalyOres(WorldGenLevel level, BlockPos anomalyPos, int radius, RandomSource random, Block shardOreBlock, Block shardCrystalBlock, boolean hasCrater) {
+        int anomalyY = anomalyPos.getY();
+        int craterRadius = 3;
+        
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 double distance = Math.sqrt(x * x + z * z);
+                if (distance > radius) continue;
                 
-                if (distance <= radius) {
-                    BlockPos columnStart = origin.offset(x, -1, z);
+                int cx = anomalyPos.getX() + x;
+                int cz = anomalyPos.getZ() + z;
+                
+                if (hasCrater && distance <= craterRadius) {
+                    // Crater logic: bowl shape depression
+                    int surfaceY = level.getHeight(Heightmap.Types.WORLD_SURFACE, cx, cz);
+                    int depth = (int) (craterRadius - distance) + 1;
                     
-                    // Place resonite ore
-                    placeOreColumn(level, columnStart, random, 
-                        StrangeMatterMod.RESONITE_ORE_BLOCK.get().defaultBlockState(), 
-                        Config.resoniteOreSpawnChanceNearAnomaly);
+                    // Clear blocks to form the crater
+                    for (int d = 0; d < depth; d++) {
+                        BlockPos clearPos = new BlockPos(cx, surfaceY - d, cz);
+                        level.setBlock(clearPos, Blocks.AIR.defaultBlockState(), 3);
+                    }
                     
-                    // Place shard ore
-                    placeOreColumn(level, columnStart, random, 
-                        shardOreBlock.defaultBlockState(), 
-                        Config.shardOreSpawnChanceNearAnomaly);
+                    // Place ore at the bottom of the crater
+                    int bottomY = surfaceY - depth;
+                    BlockPos bottomPos = new BlockPos(cx, bottomY, cz);
+                    BlockPos solidBelow = bottomPos.below();
+                    
+                    if (!level.getBlockState(solidBelow).canOcclude()) {
+                        level.setBlock(solidBelow, Blocks.STONE.defaultBlockState(), 3);
+                    }
+                    
+                    Block oreToPlace = random.nextBoolean() ? StrangeMatterMod.RESONITE_ORE_BLOCK.get() : shardOreBlock;
+                    level.setBlock(bottomPos, oreToPlace.defaultBlockState(), 3);
+                    
+                    // Place shard crystal on top of the ore (center or 60% chance)
+                    if (distance < 1.5 || random.nextFloat() < 0.6f) {
+                        BlockPos crystalPos = bottomPos.above();
+                        if (level.getBlockState(crystalPos).isAir()) {
+                            level.setBlock(crystalPos, shardCrystalBlock.defaultBlockState(), 3);
+                        }
+                    }
+                } else {
+                    // Normal depth-based ore column logic
+                    int startY = anomalyY - 1;
+                    int endY = anomalyY - 40;
+                    int minY = level.getMinBuildHeight();
+                    if (endY < minY) endY = minY;
+                    
+                    BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(cx, startY, cz);
+                    
+                    while (mutable.getY() >= endY) {
+                        int depthBelowAnomaly = anomalyY - mutable.getY();
+                        double chance = getOreChance(depthBelowAnomaly);
+                        
+                        if (random.nextDouble() < chance) {
+                            BlockState state = level.getBlockState(mutable);
+                            if (canReplaceWithOre(state)) {
+                                Block oreToPlace = random.nextFloat() < 0.6f ? StrangeMatterMod.RESONITE_ORE_BLOCK.get() : shardOreBlock;
+                                level.setBlock(mutable.immutable(), oreToPlace.defaultBlockState(), 3);
+                                
+                                // Place a short continuous column (1-3 blocks)
+                                int columnLength = 1 + random.nextInt(3);
+                                for (int i = 1; i < columnLength; i++) {
+                                    mutable.move(0, -1, 0);
+                                    if (mutable.getY() >= minY && canReplaceWithOre(level.getBlockState(mutable))) {
+                                        level.setBlock(mutable.immutable(), oreToPlace.defaultBlockState(), 3);
+                                    }
+                                }
+                                break; // Move to next x,z after placing a column
+                            }
+                        }
+                        mutable.move(0, -1, 0);
+                    }
                 }
             }
         }
     }
     
     /**
-     * Places an ore column starting from a base position.
-     * Finds the first replaceable block and places ore downward with a chance.
+     * Calculates ore spawn chance based on depth below the anomaly.
+     * High chance (85%) from 1 to 15 blocks below, tapering down to 10% at 40 blocks below.
      */
-    private static void placeOreColumn(WorldGenLevel level, BlockPos startPos, RandomSource random, 
-                                      BlockState oreState, double chance) {
-        if (startPos == null || oreState == null || chance <= 0.0) {
-            return;
+    private static double getOreChance(int depthBelowAnomaly) {
+        if (depthBelowAnomaly < 1) return 0.0;
+        if (depthBelowAnomaly <= 15) return 0.85; 
+        if (depthBelowAnomaly <= 40) {
+            // Linearly decrease from 0.85 at depth 15 to 0.10 at depth 40
+            return 0.85 - (0.75 * (depthBelowAnomaly - 15) / 25.0);
         }
-        
-        if (random.nextDouble() >= chance) {
-            return;
-        }
-        
-        // Find the first replaceable block
-        BlockPos basePos = findFirstReplaceableOreBlock(level, startPos);
-        if (basePos == null) {
-            return;
-        }
-        
-        int minY = level.getMinBuildHeight();
-        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(basePos.getX(), basePos.getY(), basePos.getZ());
-        int columnLength = 1 + random.nextInt(3); // 1-3 blocks per column
-        
-        for (int placed = 0; placed < columnLength && mutable.getY() >= minY; ) {
-            BlockState state = level.getBlockState(mutable);
-            
-            if (!canReplaceWithOre(state)) {
-                // If we haven't placed anything yet, keep searching downward for a valid starting block
-                if (placed == 0) {
-                    mutable.move(0, -1, 0);
-                    continue;
-                }
-                break;
-            }
-            
-            BlockPos placePos = mutable.immutable();
-            level.setBlock(placePos, oreState, 3);
-            placed++;
-            
-            mutable.move(0, -1, 0);
-        }
+        return 0.0;
     }
     
-    /**
-     * Find the first replaceable block for ore placement.
-     */
-    private static BlockPos findFirstReplaceableOreBlock(WorldGenLevel level, BlockPos startPos) {
-        if (startPos == null || level == null) {
-            return null;
-        }
-        
-        int minY = level.getMinBuildHeight();
-        int maxY = Math.min(startPos.getY(), level.getMaxBuildHeight() - 1);
-        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos(startPos.getX(), maxY, startPos.getZ());
-        
-        for (int y = maxY; y >= minY; y--) {
-            mutable.set(startPos.getX(), y, startPos.getZ());
-            BlockState state = level.getBlockState(mutable);
-            if (state.isAir()) {
-                continue;
-            }
-            
-            if (canReplaceWithOre(state)) {
-                return mutable.immutable();
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Check if a block can be replaced with ore.
-     */
     private static boolean canReplaceWithOre(BlockState state) {
         return Config.anomalyOreReplacementBlocks.contains(state.getBlock());
     }
     
-    /**
-     * Data class to hold surface and ground position information.
-     */
     public static class SurfaceInfo {
         public final BlockPos surfacePos;
         public final BlockPos groundPos;

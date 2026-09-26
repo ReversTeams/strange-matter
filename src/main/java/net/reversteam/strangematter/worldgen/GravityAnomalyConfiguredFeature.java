@@ -42,7 +42,7 @@ public class GravityAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatur
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, origin, random);
+        placeOres(level, anomalyPos, random, StrangeMatterMod.GRAVITIC_SHARD_CRYSTAL.get());
         
         return true;
     }

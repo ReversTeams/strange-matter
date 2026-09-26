@@ -42,7 +42,7 @@ public class WarpGateAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatu
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, origin, random);
+        placeOres(level, anomalyPos, random, StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get());
         
         return true;
     }
