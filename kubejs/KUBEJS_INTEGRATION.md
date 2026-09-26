@@ -239,7 +239,7 @@ Research nodes MUST be created in `startup_scripts` (not server_scripts) because
 ```javascript
 // If StrangeMatter binding doesn't work, use this fallback:
 if (typeof StrangeMatter === 'undefined') {
-  global.StrangeMatter = Java.loadClass('com.hexvane.strangematter.kubejs.StrangeMatterHelper');
+  global.StrangeMatter = Java.loadClass('net.reversteam.strangematter.kubejs.StrangeMatterHelper');
 }
 
 // Simple research node
@@ -545,7 +545,7 @@ If you get this error in your scripts:
 **Solution 1: Add fallback at top of script**
 ```javascript
 if (typeof StrangeMatter === 'undefined') {
-  global.StrangeMatter = Java.loadClass('com.hexvane.strangematter.kubejs.StrangeMatterHelper');
+  global.StrangeMatter = Java.loadClass('net.reversteam.strangematter.kubejs.StrangeMatterHelper');
 }
 ```
 

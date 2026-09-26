@@ -1,0 +1,11 @@
+package net.reversteam.strangematter.item;
+
+import net.minecraft.world.item.Item;
+
+public class SpatialShardItem extends Item {
+    
+    public SpatialShardItem() {
+        super(new Item.Properties());
+    }
+}
+

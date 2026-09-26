@@ -5,7 +5,7 @@
 
 const StrangeMatter = (typeof global.StrangeMatter !== 'undefined')
   ? global.StrangeMatter
-  : Java.loadClass('com.hexvane.strangematter.kubejs.StrangeMatterHelper');
+  : Java.loadClass('net.reversteam.strangematter.kubejs.StrangeMatterHelper');
 
 // Register custom research point type
 StrangeMatter.registerResearchPointType(

@@ -9,7 +9,7 @@
 
 const StrangeMatter = (typeof global.StrangeMatter !== 'undefined')
   ? global.StrangeMatter
-  : Java.loadClass('com.hexvane.strangematter.kubejs.StrangeMatterHelper');
+  : Java.loadClass('net.reversteam.strangematter.kubejs.StrangeMatterHelper');
 
 // Order values: General=0, Reality Forge=1. Custom use 10+ so they appear after.
 // Lower order = left side first; overflow goes to the right.
