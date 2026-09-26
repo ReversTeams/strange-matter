@@ -25,8 +25,9 @@ public class WarpGateAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatu
             return false; // No valid ground found
         }
         
-        // Spawn the warp gate a few blocks above the surface
-        int anomalyY = surfaceInfo.surfacePos.getY() + 2;
+        // Spawn the anomaly a few blocks above the surface
+        int surfaceY = surfaceInfo.surfacePos.getY();
+        int anomalyY = surfaceY + 2 + random.nextInt(3);
         BlockPos anomalyPos = new BlockPos(origin.getX(), anomalyY, origin.getZ());
         
         // Place a marker block that will spawn the entity on the next server tick
@@ -42,7 +43,7 @@ public class WarpGateAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatu
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, anomalyPos, random, StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get());
+        placeOres(level, anomalyPos, surfaceY, random, StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get());
         
         return true;
     }

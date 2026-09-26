@@ -26,7 +26,8 @@ public class GravityAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatur
         }
         
         // Spawn the anomaly a few blocks above the surface
-        int anomalyY = surfaceInfo.surfacePos.getY() + 2 + random.nextInt(3); // 2-4 blocks above surface
+        int surfaceY = surfaceInfo.surfacePos.getY();
+        int anomalyY = surfaceY + 2 + random.nextInt(3);
         BlockPos anomalyPos = new BlockPos(origin.getX(), anomalyY, origin.getZ());
         
         // Place a marker block that will spawn the entity on the next server tick
@@ -42,7 +43,7 @@ public class GravityAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatur
         
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
-        placeOres(level, anomalyPos, random, StrangeMatterMod.GRAVITIC_SHARD_CRYSTAL.get());
+        placeOres(level, anomalyPos, surfaceY, random, StrangeMatterMod.GRAVITIC_SHARD_CRYSTAL.get());
         
         return true;
     }

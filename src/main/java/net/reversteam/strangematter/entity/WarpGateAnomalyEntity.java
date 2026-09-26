@@ -243,9 +243,9 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
         
     }
     
-    private WarpGateAnomalyEntity findAndPairWithUnpairedGate(ServerLevel serverLevel) {
+        private WarpGateAnomalyEntity findAndPairWithUnpairedGate(ServerLevel serverLevel) {
         Vec3 currentPos = this.position();
-        
+
         // Prioritize finding distant structures first to create distributed connections
         // This prevents all warp gates from connecting to the same hub areas
         
@@ -256,7 +256,6 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 net.minecraft.core.registries.Registries.STRUCTURE,
                 new net.minecraft.resources.ResourceLocation("strangematter", "warp_gate_anomaly")
             );
-            
             
             // Search in multiple random directions far away to find suitable locations for warp gates
             Random random = new Random();
@@ -271,7 +270,6 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 int searchZ = currentPosBlock.getZ() + (int)(Math.sin(angle) * distance);
                 BlockPos candidatePos = new BlockPos(searchX, 64, searchZ);
                 
-                
                 // Check if this location is far enough away
                 double actualDistance = Math.sqrt(currentPosBlock.distSqr(candidatePos));
                 if (actualDistance < 500) {
@@ -282,17 +280,9 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 int chunkX = candidatePos.getX() >> 4;
                 int chunkZ = candidatePos.getZ() >> 4;
                 
-                
-                boolean chunkLoaded = ForgeChunkManager.forceChunk(
-                    serverLevel,
-                    "strangematter",
-                    candidatePos,
-                    chunkX,
-                    chunkZ,
-                    true, // add the chunk
-                    true  // ticking
+                ForgeChunkManager.forceChunk(
+                    serverLevel, "strangematter", candidatePos, chunkX, chunkZ, true, true
                 );
-                
                 
                 // Wait a moment for the chunk to load
                 try {
@@ -309,10 +299,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 AABB searchArea = new AABB(entitySpawnPos).inflate(20, 10, 20);
                 List<WarpGateAnomalyEntity> nearbyGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class, searchArea);
                 
-                
-                                if (nearbyGates.isEmpty()) {
-                    
-                    // Calculate the ground position for terrain modification (one block below the entity spawn position)
+                if (nearbyGates.isEmpty()) {
                     BlockPos groundPos = new BlockPos(entitySpawnPos.getX(), surfaceY, entitySpawnPos.getZ());
                     
                     // Use WorldGenUtils to place terrain modification matching the configured feature
@@ -323,12 +310,13 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                     
                     net.reversteam.strangematter.worldgen.WorldGenUtils.placeAnomalyOres(
                         serverLevel, 
-                        groundPos, 
+                        entitySpawnPos, 
+                        surfaceY, 
                         5, 
                         randomSource, 
                         StrangeMatterMod.SPATIAL_SHARD_ORE_BLOCK.get(),
                         StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get(),
-                        randomSource.nextBoolean()
+                        randomSource.nextFloat() < 0.4f
                     );
                     
                     // Spawn the warp gate entity at the center
@@ -343,12 +331,8 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 }
             }
             
-            
-            // Fallback: check registry for any unpaired gates (including nearby ones)
             WarpGateRegistry.WarpGateEntry unpairedEntry = WarpGateRegistry.findUnpairedWarpGate(
-                this.level(), 
-                currentPos, 
-                100.0 // Lower minimum distance for fallback
+                this.level(), currentPos, 100.0
             );
             
             if (unpairedEntry != null) {
@@ -358,17 +342,10 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 List<WarpGateAnomalyEntity> allGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class, 
                     new AABB(searchPos).inflate(50, 50, 50));
                 
-                WarpGateAnomalyEntity foundGate = null;
                 for (WarpGateAnomalyEntity gate : allGates) {
                     if (gate.getUUID().equals(unpairedEntry.uuid)) {
-                        foundGate = gate;
-                        break;
+                        return pairWithGate(gate);
                     }
-                }
-                
-                if (foundGate != null) {
-                    return pairWithGate(foundGate);
-                } else {
                 }
             }
             

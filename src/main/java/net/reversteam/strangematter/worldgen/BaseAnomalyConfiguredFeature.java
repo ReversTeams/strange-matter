@@ -54,9 +54,8 @@ public abstract class BaseAnomalyConfiguredFeature extends Feature<NoneFeatureCo
      * Places resonite ore and shard ore underneath the anomaly.
      * Uses config values for ore spawn chances and replacement blocks.
      */
-    protected void placeOres(WorldGenLevel level, BlockPos anomalyPos, RandomSource random, Block shardCrystalBlock) {
-        int radius = getTerrainModificationRadius();
-        boolean hasCrater = random.nextBoolean();
-        WorldGenUtils.placeAnomalyOres(level, anomalyPos, radius, random, getShardOreBlock().get(), shardCrystalBlock, hasCrater);
+    protected void placeOres(WorldGenLevel level, BlockPos anomalyPos, int surfaceY, RandomSource random, Block shardCrystalBlock) {
+        boolean hasCrater = random.nextFloat() < 0.4f;
+        WorldGenUtils.placeAnomalyOres(level, anomalyPos, surfaceY, getTerrainModificationRadius(), random, getShardOreBlock().get(), shardCrystalBlock, hasCrater);
     }
 }
