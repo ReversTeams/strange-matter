@@ -1,22 +1,22 @@
 package net.reversteam.strangematter.client;
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 import net.reversteam.strangematter.StrangeMatterMod;
 
-@Mod.EventBusSubscriber(modid = StrangeMatterMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@net.neoforged.fml.common.EventBusSubscriber(modid = StrangeMatterMod.MODID, bus = net.neoforged.fml.common.EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public class ResearchOverlayEventHandler {
-    
+
     @SubscribeEvent
-    public static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
+    public static void onRenderGuiOverlay(RenderGuiEvent.Post event) {
         GuiGraphics guiGraphics = event.getGuiGraphics();
-        float partialTick = event.getPartialTick();
-        
+        float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+
         // Render our research gain overlay
         ResearchOverlay.render(guiGraphics, partialTick);
     }
-    
+
 }

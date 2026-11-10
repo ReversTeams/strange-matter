@@ -24,9 +24,9 @@ import net.minecraft.network.chat.Component;
 import net.reversteam.strangematter.StrangeMatterMod;
 
 public class ParadoxicalEnergyCellBlock extends Block implements EntityBlock {
-    
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    
+
     public ParadoxicalEnergyCellBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.COLOR_PURPLE)
@@ -41,21 +41,20 @@ public class ParadoxicalEnergyCellBlock extends Block implements EntityBlock {
         // Register the default state with NORTH facing
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
-    
+
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
-    
+
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         // Get the horizontal direction the player is looking
         Direction facing = context.getHorizontalDirection();
         return this.defaultBlockState().setValue(FACING, facing);
     }
-    
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+
+    private InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity tile = level.getBlockEntity(pos);
             if (tile instanceof ParadoxicalEnergyCellBlockEntity cell) {
@@ -66,19 +65,31 @@ public class ParadoxicalEnergyCellBlock extends Block implements EntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-    
+
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new ParadoxicalEnergyCellBlockEntity(pos, state);
     }
-    
+
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType) {
-        return blockEntityType == StrangeMatterMod.PARADOXICAL_ENERGY_CELL_BLOCK_ENTITY.get() && !level.isClientSide ? 
+        return blockEntityType == StrangeMatterMod.PARADOXICAL_ENERGY_CELL_BLOCK_ENTITY.get() && !level.isClientSide ?
             (level1, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof ParadoxicalEnergyCellBlockEntity cell) {
                     ParadoxicalEnergyCellBlockEntity.tick(level1, pos, state1, cell);
                 }
             } : null;
+    }
+
+    @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch(interact(state,level,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME, CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            default -> net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        };
     }
 }

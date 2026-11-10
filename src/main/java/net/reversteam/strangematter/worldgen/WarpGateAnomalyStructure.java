@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 
 public class WarpGateAnomalyStructure extends Structure {
-    public static final Codec<WarpGateAnomalyStructure> CODEC = RecordCodecBuilder.create(
+    public static final com.mojang.serialization.MapCodec<WarpGateAnomalyStructure> CODEC = RecordCodecBuilder.mapCodec(
         instance -> instance.group(
             settingsCodec(instance)
         ).apply(instance, WarpGateAnomalyStructure::new)
@@ -31,12 +31,12 @@ public class WarpGateAnomalyStructure extends Structure {
         if (!net.reversteam.strangematter.Config.enableWarpGate) {
             return Optional.empty();
         }
-        
+
         // Apply rarity check
         if (context.random().nextInt(net.reversteam.strangematter.Config.warpGateRarity) != 0) {
             return Optional.empty();
         }
-        
+
         // Get the chunk position
         ChunkPos chunkPos = context.chunkPos();
 
@@ -64,17 +64,17 @@ public class WarpGateAnomalyStructure extends Structure {
 
         // Check biome to prevent spawning in oceans or rivers
         Holder<Biome> biome = context.biomeSource().getNoiseBiome(
-            pos.getX() >> 2, 
-            pos.getY() >> 2, 
-            pos.getZ() >> 2, 
+            pos.getX() >> 2,
+            pos.getY() >> 2,
+            pos.getZ() >> 2,
             context.randomState().sampler()
         );
-        
+
         String biomeName = biome.unwrapKey().map(key -> key.location().toString()).orElse("unknown");
-        
+
         // Prevent spawning in water biomes
-        if (biomeName.contains("ocean") || 
-            biomeName.contains("river") || 
+        if (biomeName.contains("ocean") ||
+            biomeName.contains("river") ||
             biomeName.contains("beach") ||
             biomeName.contains("deep_ocean") ||
             biomeName.contains("lukewarm_ocean") ||

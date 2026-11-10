@@ -11,9 +11,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -26,11 +26,10 @@ public class ResearchTabletItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
-        
+
         if (level.isClientSide) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                net.reversteam.strangematter.client.network.ClientPacketHandlers.openResearchTabletScreen()
-            );
+            net.reversteam.strangematter.client.network.ClientPacketHandlers.openResearchTabletScreen()
+            ;
         } else {
             // Server side: sync research data to client before opening GUI
             if (player instanceof ServerPlayer serverPlayer) {
@@ -38,13 +37,14 @@ public class ResearchTabletItem extends Item {
                 ResearchDataServerHandler.syncResearchDataToClient(serverPlayer, researchData);
             }
         }
-        
+
         return InteractionResultHolder.success(itemStack);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable net.minecraft.world.item.Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        Level level = context.level();
         tooltip.add(Component.translatable("item.strangematter.research_tablet.tooltip"));
     }
 }

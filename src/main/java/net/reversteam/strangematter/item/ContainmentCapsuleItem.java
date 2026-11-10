@@ -16,66 +16,67 @@ import net.minecraft.sounds.SoundSource;
 import java.util.List;
 
 public class ContainmentCapsuleItem extends Item {
-    
+
     private final AnomalyType anomalyType;
-    
+
     public ContainmentCapsuleItem(AnomalyType anomalyType) {
         super(new Item.Properties().stacksTo(64));
         this.anomalyType = anomalyType;
     }
-    
+
     public boolean hasAnomaly() {
         return anomalyType != AnomalyType.NONE;
     }
-    
+
     public AnomalyType getAnomalyType() {
         return anomalyType;
     }
-    
+
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack itemStack = player.getItemInHand(hand);
-        
+
         // Only allow throwing if the capsule contains an anomaly
         if (hasAnomaly()) {
             if (!level.isClientSide) {
                 ThrowableContainmentCapsuleEntity throwableCapsule = new ThrowableContainmentCapsuleEntity(
                     level, player, itemStack);
-                
+
                 // Calculate throw direction and velocity
                 Vec3 lookDirection = player.getLookAngle();
                 Vec3 throwVelocity = lookDirection.multiply(1.5, 1.5, 1.5);
                 throwableCapsule.shoot(throwVelocity.x, throwVelocity.y, throwVelocity.z, 1.0f, 1.0f);
-                
+
                 level.addFreshEntity(throwableCapsule);
-                
+
                 // Play potion throw sound
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), 
+                level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.SPLASH_POTION_THROW, SoundSource.PLAYERS, 0.5f, 0.4f);
             }
-            
+
             // Consume the capsule when thrown
             if (!player.getAbilities().instabuild) {
                 itemStack.shrink(1);
             }
-            
+
             return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
         }
-        
+
         return InteractionResultHolder.pass(itemStack);
     }
-    
+
     @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, net.minecraft.world.item.Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        Level level = context.level();
         if (hasAnomaly()) {
             tooltip.add(Component.translatable("item.strangematter.containment_capsule.filled.tooltip")
                 .withStyle(ChatFormatting.GREEN));
-            
+
             // Get the specific tooltip for this anomaly type
             String tooltipKey = "item.strangematter.containment_capsule_" + getAnomalyTypeKey() + ".tooltip";
             tooltip.add(Component.translatable(tooltipKey)
                 .withStyle(ChatFormatting.GRAY));
-            
+
             // Add throwing instruction
             tooltip.add(Component.literal("Right click to throw and release anomaly")
                 .withStyle(ChatFormatting.YELLOW));
@@ -84,7 +85,7 @@ public class ContainmentCapsuleItem extends Item {
                 .withStyle(ChatFormatting.GRAY));
         }
     }
-    
+
     private String getAnomalyTypeKey() {
         switch (anomalyType) {
             case GRAVITY: return "gravity";
@@ -96,7 +97,7 @@ public class ContainmentCapsuleItem extends Item {
             default: return "empty";
         }
     }
-    
+
     public enum AnomalyType {
         NONE,
         GRAVITY,
@@ -106,13 +107,13 @@ public class ContainmentCapsuleItem extends Item {
         THOUGHTWELL,
         WARP_GATE
     }
-    
+
     // Registry objects for all capsule types - these will be set by StrangeMatterMod
-    public static net.minecraftforge.registries.RegistryObject<Item> EMPTY_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> GRAVITY_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> ENERGETIC_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> ECHOING_SHADOW_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> TEMPORAL_BLOOM_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> THOUGHTWELL_CAPSULE;
-    public static net.minecraftforge.registries.RegistryObject<Item> WARP_GATE_CAPSULE;
+    public static java.util.function.Supplier<Item> EMPTY_CAPSULE;
+    public static java.util.function.Supplier<Item> GRAVITY_CAPSULE;
+    public static java.util.function.Supplier<Item> ENERGETIC_CAPSULE;
+    public static java.util.function.Supplier<Item> ECHOING_SHADOW_CAPSULE;
+    public static java.util.function.Supplier<Item> TEMPORAL_BLOOM_CAPSULE;
+    public static java.util.function.Supplier<Item> THOUGHTWELL_CAPSULE;
+    public static java.util.function.Supplier<Item> WARP_GATE_CAPSULE;
 }

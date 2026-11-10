@@ -21,13 +21,13 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+
 
 public class RealityForgeBlock extends Block implements EntityBlock {
-    
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    
+
     public RealityForgeBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.COLOR_PURPLE)
@@ -38,44 +38,43 @@ public class RealityForgeBlock extends Block implements EntityBlock {
         // Register the default state with NORTH facing
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
-    
+
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
-    
+
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         // Get the horizontal direction the player is looking
         Direction facing = context.getHorizontalDirection();
         return this.defaultBlockState().setValue(FACING, facing);
     }
-    
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+
+    private InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity tile = level.getBlockEntity(pos);
             if (tile instanceof net.reversteam.strangematter.block.RealityForgeBlockEntity realityForge) {
                 // Sync shard data to client before opening GUI so shards render correctly
                 realityForge.syncToClient();
                 // Use NetworkHooks.openScreen like other machines
-                net.minecraftforge.network.NetworkHooks.openScreen((net.minecraft.server.level.ServerPlayer) player, realityForge, pos);
+                ((net.minecraft.server.level.ServerPlayer) player).openMenu(realityForge, pos);
                 return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-    
+
     @Override
     public net.minecraft.world.level.block.RenderShape getRenderShape(BlockState state) {
         return net.minecraft.world.level.block.RenderShape.MODEL;
     }
-    
+
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return StrangeMatterMod.REALITY_FORGE_BLOCK_ENTITY.get().create(pos, state);
     }
-    
+
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType) {
         return blockEntityType == StrangeMatterMod.REALITY_FORGE_BLOCK_ENTITY.get() && !level.isClientSide ?
@@ -85,7 +84,7 @@ public class RealityForgeBlock extends Block implements EntityBlock {
                 }
             } : null;
     }
-    
+
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
@@ -95,5 +94,17 @@ public class RealityForgeBlock extends Block implements EntityBlock {
             }
         }
         super.onRemove(state, level, pos, newState, isMoving);
+    }
+
+    @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch(interact(state,level,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME, CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            default -> net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        };
     }
 }

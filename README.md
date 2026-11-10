@@ -1,6 +1,8 @@
+> NeoForge 1.21.1 port: Java 21 required. Initial testing build. See PORT-STATUS.txt for validation and limits.
+
 # Anomalous Matter Mod
 
-A Minecraft 1.20.1 Forge mod that introduces reality-bending anomalies into the world. Study, contain, and harness these mysterious phenomena through a comprehensive research system.
+A Minecraft 1.21.1 NeoForge mod that introduces reality-bending anomalies into the world. Study, contain, and harness these mysterious phenomena through a comprehensive research system.
 
 Maintained fork of the Strange Matter mod. Internally, it retains the Strange Matter namespace.
 
@@ -129,9 +131,9 @@ The mod features a comprehensive research system with 22 research nodes:
 ## Development Setup
 
 ### **Prerequisites**
-- Java 17 or higher
-- Minecraft 1.20.1
-- Forge MDK 47.4.0
+- Java 21
+- Minecraft 1.21.1
+- NeoForge 21.1.265 / ModDevGradle
 
 ### **Building**
 1. Clone the repository

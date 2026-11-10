@@ -32,50 +32,50 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
 
     private int tickCounter = 0;
     private NonNullList<ItemStack> items = NonNullList.withSize(1, ItemStack.EMPTY); // Single output slot
-    
+
     // Cached anomaly for efficiency
     private BaseAnomalyEntity cachedAnomaly = null;
     private int anomalyCheckCounter = 0;
-    
+
     // Machine inventory - this is what the GUI actually uses
-    private final net.minecraftforge.items.IItemHandler machineInventory = new net.minecraftforge.items.wrapper.InvWrapper(this);
-    
+    private final net.neoforged.neoforge.items.IItemHandler machineInventory = new net.neoforged.neoforge.items.wrapper.InvWrapper(this);
+
     public ResonanceCondenserBlockEntity(BlockPos pos, BlockState state) {
         super(StrangeMatterMod.RESONANCE_CONDENSER_BLOCK_ENTITY.get(), pos, state, 1);
-        
+
         // Configure energy system for Resonance Condenser from config
         this.energyPerTick = net.reversteam.strangematter.Config.resonanceCondenserEnergyPerTick;
         this.maxEnergyStorage = net.reversteam.strangematter.Config.resonanceCondenserEnergyStorage;
         this.energyStorage.setCapacity(maxEnergyStorage);
-        
+
         // Configure energy input sides (all sides except front)
         boolean[] inputSides = {true, true, true, true, true, true}; // All sides by default
         this.setEnergyInputSides(inputSides);
-        
+
         // No energy output by default
         boolean[] outputSides = {false, false, false, false, false, false};
         this.setEnergyOutputSides(outputSides);
     }
-    
+
     @Override
     protected MachineEnergyRole getEnergyRole() {
         return MachineEnergyRole.CONSUMER; // Explicitly define as consumer
     }
-    
+
     public static void tick(Level level, BlockPos pos, BlockState state, ResonanceCondenserBlockEntity blockEntity) {
         blockEntity.tickCounter++;
-        
+
         // Only process machine logic on server side
         if (!level.isClientSide) {
             blockEntity.processResonance();
         }
-        
+
         // Spawn particles every 5 ticks (4 times per second) - client side only
         if (level.isClientSide && blockEntity.tickCounter % 5 == 0) {
             blockEntity.spawnParticles(level, pos);
         }
     }
-    
+
     private void processResonance() {
         if (!level.isClientSide) {
             // Only search for anomalies every 20 ticks (1 second) to improve performance
@@ -84,7 +84,7 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
                 anomalyCheckCounter = 0;
                 findNearbyAnomaly();
             }
-            
+
             // Only consume energy and operate if there's a valid cached anomaly
             if (cachedAnomaly != null && cachedAnomaly.isAlive()) {
                 // Check if we have enough energy to operate
@@ -92,9 +92,9 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
                     setActive(false);
                     return;
                 }
-                
+
                 setActive(true);
-                
+
                 int progressSpeed = net.reversteam.strangematter.Config.resonanceCondenserProgressSpeed;
                 if (this.tickCounter >= progressSpeed) {
                     this.tickCounter = 0;
@@ -104,7 +104,7 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
                         setChanged();
                         syncToClient(); // Sync to client for GUI updates
                     }
-                    
+
                     // Generate shard when progress level reaches maximum
                     if (progressLevel >= maxProgressLevel) {
                         generateShardFromNearbyAnomaly();
@@ -121,11 +121,11 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
             }
         }
     }
-    
+
     private void findNearbyAnomaly() {
         BlockPos pos = this.getBlockPos();
         cachedAnomaly = null;
-        
+
         for (Entity entity : level.getEntitiesOfClass(Entity.class,
             net.minecraft.world.phys.AABB.ofSize(pos.getCenter(), 20, 20, 20))) {
 
@@ -135,7 +135,7 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
             }
         }
     }
-    
+
     private void spawnParticles(Level level, BlockPos pos) {
         if (level.isClientSide) {
             // Find nearby anomalies and spawn particles
@@ -148,56 +148,56 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
         }
         }
     }
-    
+
     private void spawnEnergyParticles(Level level, net.minecraft.world.phys.Vec3 anomalyPos, BlockPos condenserPos) {
         RandomSource random = level.getRandom();
-        
+
         // Spawn particles in a sphere around the anomaly
         for (int i = 0; i < 3; i++) {
             // Random position in sphere around anomaly
             double angle = random.nextDouble() * Math.PI * 2;
             double height = random.nextDouble() * 2 - 1;
             double radius = 2 + random.nextDouble() * 3; // 2-5 block radius
-            
+
             double x = anomalyPos.x + Math.cos(angle) * radius;
             double y = anomalyPos.y + height;
             double z = anomalyPos.z + Math.sin(angle) * radius;
-            
+
             // Target position (top of condenser)
             double targetX = condenserPos.getX() + 0.5;
             double targetY = condenserPos.getY() + 2.0; // Top of the condenser
             double targetZ = condenserPos.getZ() + 0.5;
-            
+
             // Spawn the particle
-            level.addParticle(StrangeMatterMod.ENERGY_ABSORPTION_PARTICLE.get(), 
+            level.addParticle(StrangeMatterMod.ENERGY_ABSORPTION_PARTICLE.get(),
                 x, y, z, targetX, targetY, targetZ);
         }
     }
-    
+
     private void generateShardFromNearbyAnomaly() {
         if (level == null) {
             System.out.println("generateShardFromNearbyAnomaly: level is null!");
             return;
         }
-        
+
         if (cachedAnomaly == null || !cachedAnomaly.isAlive()) {
             return; // No valid cached anomaly
         }
-        
+
         Item shardItem = null;
-        
+
         // Use the cached anomaly to determine shard type based on research type
         var scannableOpt = ScannableObjectRegistry.getScannableForEntity(cachedAnomaly);
         if (scannableOpt.isPresent()) {
             ResearchType researchType = scannableOpt.get().getResearchType();
             shardItem = getShardItemForResearchType(researchType);
         }
-        
+
         if (shardItem != null) {
             // Try to add shard to machine inventory
             ItemStack shardStack = new ItemStack(shardItem);
             ItemStack currentStack = items.get(0);
-            
+
             if (currentStack.isEmpty()) {
                 // Empty slot - place the shard
                 setItem(0, shardStack);
@@ -212,7 +212,7 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
             // If slot is full with different item, don't generate shard
         }
     }
-    
+
     private Item getShardItemForResearchType(ResearchType researchType) {
         return switch (researchType) {
             case GRAVITY -> StrangeMatterMod.GRAVITIC_SHARD.get();
@@ -223,13 +223,13 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
             case ENERGY -> StrangeMatterMod.ENERGETIC_SHARD.get();
         };
     }
-    
+
     // Container interface methods
     @Override
     public int getContainerSize() {
         return items.size();
     }
-    
+
     @Override
     public boolean isEmpty() {
         for (ItemStack itemstack : this.items) {
@@ -239,22 +239,22 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
         }
         return true;
     }
-    
+
     @Override
     public ItemStack getItem(int index) {
         return this.items.get(index);
     }
-    
+
     @Override
     public ItemStack removeItem(int index, int count) {
         return ContainerHelper.removeItem(this.items, index, count);
     }
-    
+
     @Override
     public ItemStack removeItemNoUpdate(int index) {
         return ContainerHelper.takeItem(this.items, index);
     }
-    
+
     @Override
     public void setItem(int index, ItemStack stack) {
         this.items.set(index, stack);
@@ -264,34 +264,34 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
         setChanged();
         syncToClient();
     }
-    
+
     @Override
     public boolean stillValid(net.minecraft.world.entity.player.Player player) {
         if (this.level.getBlockEntity(this.worldPosition) != this) {
             return false;
         } else {
-            return player.distanceToSqr((double)this.worldPosition.getX() + 0.5D, 
-                (double)this.worldPosition.getY() + 0.5D, 
+            return player.distanceToSqr((double)this.worldPosition.getX() + 0.5D,
+                (double)this.worldPosition.getY() + 0.5D,
                 (double)this.worldPosition.getZ() + 0.5D) <= 64.0D;
         }
     }
-    
+
     @Override
     public void clearContent() {
         this.items.clear();
     }
-    
+
     @Override
     public boolean canPlaceItem(int index, ItemStack stack) {
         // Only allow placing in the output slot if it's empty or stackable
         if (index == 0) {
             ItemStack currentStack = items.get(0);
-            return currentStack.isEmpty() || 
+            return currentStack.isEmpty() ||
                    (currentStack.is(stack.getItem()) && currentStack.getCount() < currentStack.getMaxStackSize());
         }
         return false;
     }
-    
+
     // Method to sync data to client
     public void syncToClient() {
         if (level != null && !level.isClientSide) {
@@ -299,54 +299,54 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
             level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
         }
     }
-    
+
     // Energy arcs are now rendered client-side by the block entity renderer
     // No server-side particle spawning needed
-    
-    
+
+
     // Get progress level for GUI display
     public int getProgressLevel() {
         return progressLevel;
     }
-    
+
     public int getMaxProgressLevel() {
         return maxProgressLevel;
     }
-    
+
     public ContainerData getDataAccess() {
         return dataAccess;
     }
-    
+
     // Override base packet methods to include progress-specific data
     @Override
     protected void writeAdditionalStateData(FriendlyByteBuf buffer) {
         buffer.writeInt(progressLevel);
         buffer.writeInt(maxProgressLevel);
     }
-    
+
     @Override
     protected void readAdditionalStateData(FriendlyByteBuf buffer) {
         progressLevel = buffer.readInt();
         maxProgressLevel = buffer.readInt();
     }
-    
+
     public void sendGuiNetworkData(AbstractContainerMenu container, Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
             sendStatePacket(); // Use base packet system
         }
     }
-    
+
     @Override
     protected AbstractContainerMenu createMenu(int id, net.minecraft.world.entity.player.Inventory playerInventory) {
         return new ResonanceCondenserMenu(id, playerInventory, this.getBlockPos());
     }
-    
+
     @Override
     protected void processMachine() {
         // Process resonance absorption and shard generation
         processResonance();
     }
-    
+
     // MenuProvider interface methods
     @Override
     public Component getDisplayName() {
@@ -354,41 +354,41 @@ public class ResonanceCondenserBlockEntity extends BaseMachineBlockEntity {
     }
 
 
-    
-    
+
+
     public void setProgressLevel(int level) {
         this.progressLevel = Math.max(0, Math.min(level, maxProgressLevel));
         setChanged();
     }
-    
+
     public boolean isActive() {
         return isActive;
     }
-    
+
     public void setActive(boolean active) {
         this.isActive = active;
         setChanged();
     }
-    
+
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         tag.putInt("progress_level", progressLevel);
         tag.putBoolean("is_active", isActive);
         tag.putInt("tick_counter", tickCounter);
         tag.putInt("anomaly_check_counter", anomalyCheckCounter);
-        ContainerHelper.saveAllItems(tag, this.items);
+        ContainerHelper.saveAllItems(tag, this.items, registries);
     }
-    
+
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    public void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         progressLevel = tag.getInt("progress_level");
         isActive = tag.getBoolean("is_active");
         tickCounter = tag.getInt("tick_counter");
         anomalyCheckCounter = tag.getInt("anomaly_check_counter");
-        ContainerHelper.loadAllItems(tag, this.items);
-        
+        ContainerHelper.loadAllItems(tag, this.items, registries);
+
         // Clear cached anomaly on load since entity references don't persist
         cachedAnomaly = null;
     }

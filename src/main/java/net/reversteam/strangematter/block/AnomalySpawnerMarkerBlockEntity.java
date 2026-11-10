@@ -14,14 +14,14 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /**
  * Block entity that spawns an anomaly entity on the next server tick.
  * This is used to defer entity spawning from world generation threads to the main server thread.
  */
 public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
-    
+
     private static final String ENTITY_TYPE_KEY = "EntityType";
     private static final String SPAWN_X_KEY = "SpawnX";
     private static final String SPAWN_Y_KEY = "SpawnY";
@@ -29,7 +29,7 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
     private static final String SPAWN_YAW_KEY = "SpawnYaw";
     private static final String SPAWN_PITCH_KEY = "SpawnPitch";
     private static final String WARP_GATE_ACTIVE_KEY = "WarpGateActive";
-    
+
     private String entityTypeId;
     private double spawnX;
     private double spawnY;
@@ -40,25 +40,25 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
     private boolean hasSpawned = false;
     private int spawnAttempts = 0;
     private static final int MAX_SPAWN_ATTEMPTS = 3;
-    
+
     public AnomalySpawnerMarkerBlockEntity(BlockPos pos, BlockState state) {
         super(StrangeMatterMod.ANOMALY_SPAWNER_MARKER_BLOCK_ENTITY.get(), pos, state);
     }
-    
+
     public static void serverTick(Level level, BlockPos pos, BlockState state, AnomalySpawnerMarkerBlockEntity blockEntity) {
         // Always remove if already spawned or no entity type
         if (blockEntity.hasSpawned || blockEntity.entityTypeId == null) {
             removeMarkerBlock(level, pos);
             return;
         }
-        
+
         // Increment attempt counter
         blockEntity.spawnAttempts++;
         blockEntity.setChanged(); // Save attempt count
-        
+
         // Try to spawn the entity
         boolean spawned = blockEntity.spawnEntity(level);
-        
+
         // Remove the block if:
         // 1. Successfully spawned
         // 2. Reached max attempts (even if spawning failed)
@@ -78,14 +78,14 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
             }
         } else if (blockEntity.spawnAttempts >= MAX_SPAWN_ATTEMPTS) {
             // Final attempt failed, remove anyway to prevent stuck blocks
-            StrangeMatterMod.LOGGER.warn("Marker block at {} failed to spawn entity after {} attempts, removing", 
+            StrangeMatterMod.LOGGER.warn("Marker block at {} failed to spawn entity after {} attempts, removing",
                 pos, blockEntity.spawnAttempts);
             removeMarkerBlock(level, pos);
         }
-        // If spawning failed but we haven't reached max attempts yet, 
+        // If spawning failed but we haven't reached max attempts yet,
         // the block will remain and try again on the next tick
     }
-    
+
     /**
      * Safely removes the marker block, ensuring it happens on the server thread.
      * Uses multiple methods to ensure removal happens.
@@ -94,16 +94,16 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
         if (level.isClientSide) {
             return; // Don't remove on client
         }
-        
+
         // Explicitly remove the block entity first. During worldgen/proto-chunk transitions it's possible to end up with
         // orphaned BE NBT if only the block state is changed. Clearing the BE proactively prevents
         // "Tried to load a DUMMY block entity ... but found minecraft:air" warnings on future loads.
         level.removeBlockEntity(pos);
-        
+
         // Use setBlock to air as primary method (more reliable than removeBlock)
         BlockState airState = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
         level.setBlock(pos, airState, 3); // Flag 3 = notify neighbors and update clients
-        
+
         // Also try removeBlock as backup (some edge cases where setBlock might not work)
         if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             // Schedule on next tick as well to ensure removal
@@ -115,24 +115,24 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
             });
         }
     }
-    
+
     private boolean spawnEntity(Level level) {
         if (level.isClientSide || entityTypeId == null) {
             return false;
         }
-        
+
         try {
             ResourceLocation entityLocation = ResourceLocation.parse(entityTypeId);
             Entity entity = createEntity(entityLocation, level);
-            
+
             if (entity != null) {
                 entity.moveTo(spawnX, spawnY, spawnZ, spawnYaw, spawnPitch);
-                
+
                 // Special handling for WarpGateAnomalyEntity
                 if (entity instanceof WarpGateAnomalyEntity warpGate && warpGateActive) {
                     warpGate.setActive(true);
                 }
-                
+
                 // Only return true if entity was actually added to the world
                 return level.addFreshEntity(entity);
             } else {
@@ -141,14 +141,14 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
         } catch (Exception e) {
             StrangeMatterMod.LOGGER.error("Failed to spawn entity from marker at {}: {}", worldPosition, e.getMessage(), e);
         }
-        
+
         return false;
     }
-    
+
     private Entity createEntity(ResourceLocation entityLocation, Level level) {
         // Map entity types to their constructors
         String path = entityLocation.getPath();
-        
+
         return switch (path) {
             case "gravity_anomaly" -> new GravityAnomalyEntity(StrangeMatterMod.GRAVITY_ANOMALY.get(), level);
             case "temporal_bloom" -> new TemporalBloomEntity(StrangeMatterMod.TEMPORAL_BLOOM.get(), level);
@@ -158,7 +158,7 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
             case "warp_gate_anomaly" -> new WarpGateAnomalyEntity(StrangeMatterMod.WARP_GATE_ANOMALY_ENTITY.get(), level);
             default -> {
                 // Fallback: try to get from registry
-                var entityType = ForgeRegistries.ENTITY_TYPES.getValue(entityLocation);
+                var entityType = BuiltInRegistries.ENTITY_TYPE.get(entityLocation);
                 if (entityType != null) {
                     yield entityType.create(level);
                 }
@@ -167,7 +167,7 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
             }
         };
     }
-    
+
     /**
      * Set the entity type and spawn position for this marker
      */
@@ -180,7 +180,7 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
         this.spawnPitch = pitch;
         setChanged();
     }
-    
+
     /**
      * Set additional data for WarpGateAnomalyEntity
      */
@@ -188,10 +188,10 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
         this.warpGateActive = active;
         setChanged();
     }
-    
+
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         if (entityTypeId != null) {
             tag.putString(ENTITY_TYPE_KEY, entityTypeId);
         }
@@ -204,10 +204,10 @@ public class AnomalySpawnerMarkerBlockEntity extends BlockEntity {
         tag.putBoolean("HasSpawned", hasSpawned);
         tag.putInt("SpawnAttempts", spawnAttempts);
     }
-    
+
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
+    public void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
         entityTypeId = tag.contains(ENTITY_TYPE_KEY) ? tag.getString(ENTITY_TYPE_KEY) : null;
         spawnX = tag.getDouble(SPAWN_X_KEY);
         spawnY = tag.getDouble(SPAWN_Y_KEY);

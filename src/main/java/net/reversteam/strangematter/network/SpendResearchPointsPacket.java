@@ -1,13 +1,15 @@
 package net.reversteam.strangematter.network;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class SpendResearchPointsPacket {
+public class SpendResearchPointsPacket implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+ public static final Type<SpendResearchPointsPacket> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "spend_research_points_packet"));
+ @Override public Type<SpendResearchPointsPacket> type() { return TYPE; }
     private final Map<String, Integer> costs;
     private final String researchId;
     private final boolean instantUnlock;
@@ -45,15 +47,15 @@ public class SpendResearchPointsPacket {
         boolean instantUnlock = buffer.readableBytes() >= 1 && buffer.readBoolean();
         return new SpendResearchPointsPacket(costs, researchId, instantUnlock);
     }
-    
-    public static void handle(SpendResearchPointsPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public static void handle(SpendResearchPointsPacket packet, Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
         context.enqueueWork(() -> {
-            if (context.getSender() != null) {
-                var player = context.getSender();
-                net.reversteam.strangematter.research.ResearchData researchData = 
+            if ((context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null) != null) {
+                var player = (context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null);
+                net.reversteam.strangematter.research.ResearchData researchData =
                     net.reversteam.strangematter.research.ResearchData.get(player);
-                
+
                 boolean canAfford = true;
                 for (Map.Entry<String, Integer> entry : packet.costs.entrySet()) {
                     if (researchData.getResearchPoints(entry.getKey()) < entry.getValue()) {
@@ -61,7 +63,7 @@ public class SpendResearchPointsPacket {
                         break;
                     }
                 }
-                
+
                 if (canAfford) {
                     for (Map.Entry<String, Integer> entry : packet.costs.entrySet()) {
                         researchData.spendResearchPoints(entry.getKey(), entry.getValue());
@@ -98,6 +100,6 @@ public class SpendResearchPointsPacket {
                 }
             }
         });
-        context.setPacketHandled(true);
+
     }
 }

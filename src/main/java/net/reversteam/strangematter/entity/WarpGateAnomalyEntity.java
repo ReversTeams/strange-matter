@@ -18,7 +18,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.reversteam.strangematter.registry.WarpGateRegistry;
-import net.minecraftforge.common.world.ForgeChunkManager;
+
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -35,114 +35,114 @@ import java.util.UUID;
  * When entities enter one warp gate, they are teleported to its paired gate.
  */
 public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
-    
+
     // Entity data for syncing between client and server
     private static final EntityDataAccessor<String> PAIRED_GATE_ID = SynchedEntityData.defineId(WarpGateAnomalyEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> IS_ACTIVE = SynchedEntityData.defineId(WarpGateAnomalyEntity.class, EntityDataSerializers.BOOLEAN);
-    
+
     // Config-driven getters for warp gate parameters
     private float getTeleportRadius() {
         return (float) net.reversteam.strangematter.Config.warpTeleportRadius;
     }
-    
+
     @Override
     protected float getEffectRadius() {
         return getTeleportRadius();
     }
-    
-    
+
+
     private int getTeleportCooldownMax() {
         return net.reversteam.strangematter.Config.warpTeleportCooldown;
     }
-    
+
     private static final float AURA_RADIUS = 4.0f;
-    
+
     // Sound system - using StrangeMatterSounds for consistency
-    
+
     // Teleportation tracking
     private int teleportCooldown = 0;
     private UUID pairedGateUUID;
     private BlockPos pairedGateStructureLocation;
     private java.util.Map<UUID, Integer> playerCooldowns = new java.util.HashMap<>();
-    
+
     public WarpGateAnomalyEntity(EntityType<?> entityType, Level level) {
         super(entityType, level);
         this.entityData.set(IS_ACTIVE, true);
         // Set a proper bounding box for the warp gate
         this.setBoundingBox(new AABB(-1.5, 0, -1.5, 1.5, 3, 1.5));
     }
-    
+
     @Override
-    public void onAddedToWorld() {
-        super.onAddedToWorld();
+    public void onAddedToLevel() {
+        super.onAddedToLevel();
         // Register this warp gate in the location data when added to world
         if (!this.level().isClientSide && this.level() instanceof ServerLevel serverLevel) {
             WarpGateLocationData data = WarpGateLocationData.get(serverLevel);
             data.addWarpGate(this.getUUID(), this.blockPosition());
         }
     }
-    
+
     @Override
     public void remove(RemovalReason reason) {
         // Unregister this warp gate when removed
         WarpGateRegistry.unregisterWarpGate(this.getUUID());
-        
+
         if (!this.level().isClientSide && this.level() instanceof ServerLevel serverLevel) {
             WarpGateLocationData data = WarpGateLocationData.get(serverLevel);
             data.removeWarpGate(this.getUUID());
         }
         super.remove(reason);
     }
-    
+
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-        this.entityData.define(PAIRED_GATE_ID, "");
-        this.entityData.define(IS_ACTIVE, true);
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(PAIRED_GATE_ID, "");
+        builder.define(IS_ACTIVE, true);
     }
-    
+
     @Override
     public Component getDisplayName() {
         return Component.literal("Warp Gate");
     }
-    
+
     @Override
     public void tick() {
         super.tick();
-        
+
         // Register this warp gate in the registry when it first ticks
         if (this.tickCount == 1) {
             WarpGateRegistry.registerWarpGate(this);
         }
-        
+
         if (teleportCooldown > 0) {
             teleportCooldown--;
         }
     }
-    
+
     @Override
     protected void applyAnomalyEffects() {
         if (!this.isActive() || this.isContained() || !net.reversteam.strangematter.Config.enableWarpEffects) {
             return; // Don't apply teleportation if not active, contained, or effects disabled
         }
-        
+
         // Check if teleportation effect is enabled
         if (!net.reversteam.strangematter.Config.enableWarpTeleport) {
             return;
         }
-        
+
         float teleportRadius = getTeleportRadius();
         AABB teleportBox = this.getBoundingBox().inflate(teleportRadius);
         List<Entity> entitiesInRange = this.level().getEntities(this, teleportBox);
-        
-        
+
+
         for (Entity entity : entitiesInRange) {
             // Calculate distance from anomaly center
             double distance = this.distanceTo(entity);
-            
-            
+
+
             // Allow creative players for testing, but add a message
-            
+
             if (distance <= teleportRadius && teleportCooldown <= 0) {
                 teleportEntity(entity);
             } else {
@@ -157,7 +157,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             }
         }
     }
-    
+
     /**
      * Clamps a position to the level's world border and build height so teleporting never places entities outside.
      * Uses a 1-block inset from the border so entities are safely inside (avoids instant death on servers with small borders).
@@ -181,37 +181,37 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
         if (this.level().isClientSide) {
             return;
         }
-        
+
         if (!(this.level() instanceof ServerLevel serverLevel)) {
             return;
         }
-        
-        
-        
-        
+
+
+
+
         // If we have a paired structure location, teleport directly there
         if (pairedGateStructureLocation != null) {
-            
+
             // Use the stored warp gate position but offset it to prevent immediate re-detection
             // Offset by 4 blocks to ensure we're outside the 2-block teleportation radius
             Vec3 teleportPos = new Vec3(pairedGateStructureLocation.getX() + 4.0, pairedGateStructureLocation.getY() + 2, pairedGateStructureLocation.getZ() + 0.5);
             teleportPos = clampToWorldBorder(serverLevel, teleportPos);
-            
+
             performDirectTeleportation(entity, serverLevel, teleportPos);
             return;
         }
-        
+
         // No paired gate or couldn't find structure location, try to find and pair with unpaired gate
         WarpGateAnomalyEntity pairedGate = findAndPairWithUnpairedGate(serverLevel);
         if (pairedGate == null) {
             // No suitable gate found for pairing
             return;
         }
-        
+
         // Calculate teleport position (offset from the paired gate to prevent back-and-forth)
         Vec3 teleportPos = clampToWorldBorder(serverLevel, pairedGate.position().add(3, 1, 0)); // 3 blocks away from the destination portal
-        
-        
+
+
         // Teleport the entity using server-side methods
         if (entity instanceof Player player) {
             // Use server-side teleportation for players
@@ -223,161 +223,160 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             // For other entities, just set position
             entity.setPos(teleportPos.x, teleportPos.y, teleportPos.z);
         }
-        
+
         // Set cooldown to prevent rapid teleportation (per-entity, not per-gate)
         if (entity instanceof Player) {
             int cooldownMax = getTeleportCooldownMax();
             teleportCooldown = cooldownMax;
             pairedGate.teleportCooldown = cooldownMax;
         }
-        
+
         // Play teleportation sound
-        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), 
+        this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
             SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.AMBIENT, 1.0f, 1.5f);
-        this.level().playSound(null, teleportPos.x, teleportPos.y, teleportPos.z, 
+        this.level().playSound(null, teleportPos.x, teleportPos.y, teleportPos.z,
             SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.AMBIENT, 1.0f, 1.5f);
-        
+
         // Spawn teleportation particles
         spawnTeleportParticles(this.position());
         spawnTeleportParticles(teleportPos);
-        
+
     }
-    
+
         private WarpGateAnomalyEntity findAndPairWithUnpairedGate(ServerLevel serverLevel) {
         Vec3 currentPos = this.position();
 
         // Prioritize finding distant structures first to create distributed connections
         // This prevents all warp gates from connecting to the same hub areas
-        
+
         // If no unpaired gates in registry, search for distant structures and load them
         try {
             // Create a TagKey for our warp gate structure
             var warpGateTag = net.minecraft.tags.TagKey.create(
                 net.minecraft.core.registries.Registries.STRUCTURE,
-                new net.minecraft.resources.ResourceLocation("strangematter", "warp_gate_anomaly")
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "warp_gate_anomaly")
             );
-            
+
             // Search in multiple random directions far away to find suitable locations for warp gates
             Random random = new Random();
             BlockPos currentPosBlock = this.blockPosition();
-            
+
             for (int attempt = 0; attempt < 5; attempt++) {
                 // Pick a random direction and distance (minimum 1000 blocks away)
                 double angle = random.nextDouble() * 2 * Math.PI;
                 int distance = 1000 + random.nextInt(4000); // 1000-5000 blocks away
-                
+
                 int searchX = currentPosBlock.getX() + (int)(Math.cos(angle) * distance);
                 int searchZ = currentPosBlock.getZ() + (int)(Math.sin(angle) * distance);
                 BlockPos candidatePos = new BlockPos(searchX, 64, searchZ);
-                
+
                 // Check if this location is far enough away
                 double actualDistance = Math.sqrt(currentPosBlock.distSqr(candidatePos));
                 if (actualDistance < 500) {
                     continue;
                 }
-                
+
                 // Force load the chunk to check the area
                 int chunkX = candidatePos.getX() >> 4;
                 int chunkZ = candidatePos.getZ() >> 4;
-                
-                ForgeChunkManager.forceChunk(
-                    serverLevel, "strangematter", candidatePos, chunkX, chunkZ, true, true
+
+                StrangeMatterMod.WARP_TICKETS.forceChunk(serverLevel, candidatePos, chunkX, chunkZ, true, true
                 );
-                
+
                 // Wait a moment for the chunk to load
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-                
+
                 // Check if this location already has a warp gate
                 int surfaceY = serverLevel.getHeight(Heightmap.Types.WORLD_SURFACE, candidatePos.getX(), candidatePos.getZ());
                 BlockPos entitySpawnPos = new BlockPos(candidatePos.getX(), surfaceY + 2, candidatePos.getZ());
-                
-                
+
+
                 AABB searchArea = new AABB(entitySpawnPos).inflate(20, 10, 20);
                 List<WarpGateAnomalyEntity> nearbyGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class, searchArea);
-                
+
                 if (nearbyGates.isEmpty()) {
                     BlockPos groundPos = new BlockPos(entitySpawnPos.getX(), surfaceY, entitySpawnPos.getZ());
-                    
+
                     // Use WorldGenUtils to place terrain modification matching the configured feature
                     // Warp gates use radius 5 and 80% chance for grass
                     net.minecraft.util.RandomSource randomSource = serverLevel.getRandom();
                     net.reversteam.strangematter.worldgen.WorldGenUtils.placeAnomalousGrassPatch(
                         serverLevel, groundPos, 5, 0.8f, randomSource);
-                    
+
                     net.reversteam.strangematter.worldgen.WorldGenUtils.placeAnomalyOres(
-                        serverLevel, 
-                        entitySpawnPos, 
-                        surfaceY, 
-                        5, 
-                        randomSource, 
+                        serverLevel,
+                        entitySpawnPos,
+                        surfaceY,
+                        5,
+                        randomSource,
                         StrangeMatterMod.SPATIAL_SHARD_ORE_BLOCK.get(),
                         StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get(),
                         randomSource.nextFloat() < 0.4f
                     );
-                    
+
                     // Spawn the warp gate entity at the center
                     WarpGateAnomalyEntity newWarpGate = StrangeMatterMod.WARP_GATE_ANOMALY_ENTITY.get().create(serverLevel);
                     if (newWarpGate != null) {
                         newWarpGate.setPos(entitySpawnPos.getX() + 0.5, entitySpawnPos.getY() + 1, entitySpawnPos.getZ() + 0.5);
                         newWarpGate.setActive(true); // Ensure it's active
                         serverLevel.addFreshEntity(newWarpGate);
-                        
+
                         return pairWithGate(newWarpGate);
                     }
                 }
             }
-            
+
             WarpGateRegistry.WarpGateEntry unpairedEntry = WarpGateRegistry.findUnpairedWarpGate(
                 this.level(), currentPos, 100.0
             );
-            
+
             if (unpairedEntry != null) {
-                
+
                 // Find the actual entity from the UUID
                 BlockPos searchPos = new BlockPos((int)unpairedEntry.position.x, (int)unpairedEntry.position.y, (int)unpairedEntry.position.z);
-                List<WarpGateAnomalyEntity> allGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class, 
+                List<WarpGateAnomalyEntity> allGates = serverLevel.getEntitiesOfClass(WarpGateAnomalyEntity.class,
                     new AABB(searchPos).inflate(50, 50, 50));
-                
+
                 for (WarpGateAnomalyEntity gate : allGates) {
                     if (gate.getUUID().equals(unpairedEntry.uuid)) {
                         return pairWithGate(gate);
                     }
                 }
             }
-            
+
             return null;
-            
+
         } catch (Exception e) {
             System.err.println("WarpGate: Error during structure search: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
-    
+
     private WarpGateAnomalyEntity pairWithGate(WarpGateAnomalyEntity foundGate) {
-        
+
         // Pair the gates using their actual positions
         BlockPos thisPos = this.blockPosition();
         BlockPos otherPos = foundGate.blockPosition();
-        
+
         // Store each other's positions for teleportation
         this.setPairedGateStructureLocation(otherPos);
         foundGate.setPairedGateStructureLocation(thisPos);
-        
+
         // Mark both gates as paired in the registry
         WarpGateRegistry.markWarpGateAsPaired(this.getUUID());
         WarpGateRegistry.markWarpGateAsPaired(foundGate.getUUID());
-        
-        
-        
+
+
+
         return foundGate;
     }
-    
-    
+
+
     private WarpGateAnomalyEntity findExistingWarpGateAtStructureLocation(ServerLevel serverLevel, BlockPos structurePos) {
 
         // Calculate chunk coordinates
@@ -385,10 +384,8 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
         int chunkZ = structurePos.getZ() >> 4;
 
 
-        // Force load the chunk using ForgeChunkManager
-        boolean success = ForgeChunkManager.forceChunk(
-            serverLevel,
-            "strangematter",
+        // Force load the chunk using net.neoforged.neoforge.common.world.chunk.ForcedChunkManager
+        boolean success = StrangeMatterMod.WARP_TICKETS.forceChunk(serverLevel,
             structurePos,
             chunkX,
             chunkZ,
@@ -406,9 +403,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
         if (!entities.isEmpty()) {
 
             // Unload the chunk after we're done
-            ForgeChunkManager.forceChunk(
-                serverLevel,
-                "strangematter",
+            StrangeMatterMod.WARP_TICKETS.forceChunk(serverLevel,
                 structurePos,
                 chunkX,
                 chunkZ,
@@ -419,11 +414,9 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             return entities.get(0); // Return the first one found
         }
 
-        
+
         // Unload the chunk after we're done
-        ForgeChunkManager.forceChunk(
-            serverLevel,
-            "strangematter",
+        StrangeMatterMod.WARP_TICKETS.forceChunk(serverLevel,
             structurePos,
             chunkX,
             chunkZ,
@@ -433,16 +426,16 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
 
         return null; // Don't spawn new gates, just return null
     }
-    
+
     private void spawnTeleportParticles(Vec3 pos) {
         if (this.level().isClientSide) return;
-        
+
         // Spawn ender particles at teleport location
         for (int i = 0; i < 20; i++) {
             double x = pos.x + (this.level().random.nextDouble() - 0.5) * 2.0;
             double y = pos.y + this.level().random.nextDouble() * 2.0;
             double z = pos.z + (this.level().random.nextDouble() - 0.5) * 2.0;
-            
+
             this.level().addParticle(
                 ParticleTypes.PORTAL,
                 x, y, z,
@@ -452,10 +445,10 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             );
         }
     }
-    
+
     private void performDirectTeleportation(Entity entity, ServerLevel serverLevel, Vec3 teleportPos) {
         teleportPos = clampToWorldBorder(serverLevel, teleportPos);
-        
+
         // Teleport the entity using server-side methods
         if (entity instanceof Player player) {
             // Use server-side teleportation for players
@@ -467,52 +460,52 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             // For other entities, just set position
             entity.setPos(teleportPos.x, teleportPos.y, teleportPos.z);
         }
-        
+
         // Play teleportation sound
-        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), 
+        this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
             SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.AMBIENT, 1.0f, 1.5f);
-        this.level().playSound(null, teleportPos.x, teleportPos.y, teleportPos.z, 
+        this.level().playSound(null, teleportPos.x, teleportPos.y, teleportPos.z,
             SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.AMBIENT, 1.0f, 1.5f);
-        
+
         // Spawn teleportation particles
         spawnTeleportParticles(this.position());
         spawnTeleportParticles(teleportPos);
-        
+
     }
-    
+
     private BlockPos findStructureLocationForPairedGate(ServerLevel serverLevel, UUID pairedUUID) {
         // This method should find the specific structure location where the paired gate is located
         // For now, we'll try to find the actual entity and get its position
-        
+
         // Try to find the actual entity first
         Entity pairedEntity = serverLevel.getEntity(pairedUUID);
         if (pairedEntity instanceof WarpGateAnomalyEntity pairedGate) {
             return pairedGate.blockPosition();
         }
-        
+
         return null;
     }
-    
+
     private WarpGateAnomalyEntity findPairedGate(ServerLevel level) {
         if (pairedGateUUID == null) {
             return null;
         }
-        
-        
+
+
         Entity entity = level.getEntity(pairedGateUUID);
         if (entity instanceof WarpGateAnomalyEntity warpGate) {
             return warpGate;
         } else if (entity != null) {
         } else {
         }
-        
+
         return null;
     }
-    
+
     @Override
     protected void spawnParticles() {
         if (this.level().isClientSide) return;
-        
+
         // Spawn swirling portal particles
         if (tickCount % 2 == 0) {
             double radius = AURA_RADIUS;
@@ -520,7 +513,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             double x = this.getX() + Math.cos(angle) * radius;
             double z = this.getZ() + Math.sin(angle) * radius;
             double y = this.getY() + 0.5;
-            
+
             this.level().addParticle(
                 ParticleTypes.PORTAL,
                 x, y, z,
@@ -529,7 +522,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 Math.cos(angle) * 0.1
             );
         }
-        
+
         // Spawn center vortex particles
         if (tickCount % 5 == 0) {
             for (int i = 0; i < 3; i++) {
@@ -538,7 +531,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 double x = this.getX() + Math.cos(angle) * radius;
                 double z = this.getZ() + Math.sin(angle) * radius;
                 double y = this.getY() + 0.5;
-                
+
                 this.level().addParticle(
                     ParticleTypes.END_ROD,
                     x, y, z,
@@ -546,13 +539,13 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
                 );
             }
         }
-        
+
         // Spawn space tear effect particles
         if (tickCount % 10 == 0) {
             double x = this.getX() + (this.level().random.nextDouble() - 0.5) * 2.0;
             double y = this.getY() + this.level().random.nextDouble() * 2.0;
             double z = this.getZ() + (this.level().random.nextDouble() - 0.5) * 2.0;
-            
+
             this.level().addParticle(
                 ParticleTypes.REVERSE_PORTAL,
                 x, y, z,
@@ -562,66 +555,66 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             );
         }
     }
-    
+
     @Override
     protected void updateClientEffects() {
         // Client-side visual effects
         // This will be handled by the renderer
     }
-    
+
     @Override
     public ResourceLocation getAnomalySound() {
         return net.reversteam.strangematter.sound.StrangeMatterSounds.WARP_GATE_LOOP.get().getLocation();
     }
-    
+
     @Override
     protected ResearchType getResearchType() {
         return ResearchType.SPACE;
     }
-    
+
     @Override
     protected String getAnomalyName() {
         return "WarpGate";
     }
-    
+
     // Getters and setters
     public String getPairedGateId() {
         return this.entityData.get(PAIRED_GATE_ID);
     }
-    
+
     public void setPairedGateId(String gateId) {
         this.entityData.set(PAIRED_GATE_ID, gateId);
     }
-    
+
     public void setPairedGateStructureLocation(BlockPos location) {
         this.pairedGateStructureLocation = location;
     }
-    
+
     public boolean isActive() {
         return this.entityData.get(IS_ACTIVE);
     }
-    
+
     public void setActive(boolean active) {
         this.entityData.set(IS_ACTIVE, active);
     }
-    
+
     public UUID getPairedGateUUID() {
         return pairedGateUUID;
     }
-    
+
     public void setPairedGateUUID(UUID uuid) {
         this.pairedGateUUID = uuid;
     }
-    
+
     public float getAuraRadius() {
         return AURA_RADIUS;
     }
-    
+
     // Method to get the ambient sound
     public SoundEvent getAmbientSound() {
         return SoundEvents.PORTAL_AMBIENT;
     }
-    
+
     @Override
     protected void readAdditionalSaveData(CompoundTag compound) {
         super.readAdditionalSaveData(compound);
@@ -646,7 +639,7 @@ public class WarpGateAnomalyEntity extends BaseAnomalyEntity {
             );
         }
     }
-    
+
     @Override
     protected void addAdditionalSaveData(CompoundTag compound) {
         super.addAdditionalSaveData(compound);

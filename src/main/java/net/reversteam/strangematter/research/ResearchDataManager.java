@@ -13,11 +13,11 @@ import java.util.UUID;
 public class ResearchDataManager extends SavedData {
     private static final String DATA_NAME = "strangematter_research_data";
     private final Map<UUID, ResearchData> playerResearchData;
-    
+
     public ResearchDataManager() {
         this.playerResearchData = new HashMap<>();
     }
-    
+
     public static ResearchDataManager get(ServerLevel level) {
         // IMPORTANT: DimensionDataStorage is per-dimension. Player research should be global per save/server,
         // so always store/load from the overworld's data storage (single source of truth).
@@ -26,13 +26,9 @@ public class ResearchDataManager extends SavedData {
             storageLevel = level.getServer().overworld();
         }
 
-        return storageLevel.getDataStorage().computeIfAbsent(
-            ResearchDataManager::load,
-            ResearchDataManager::new,
-            DATA_NAME
-        );
+        return storageLevel.getDataStorage().computeIfAbsent(new SavedData.Factory<>(ResearchDataManager::new, (tag, registries) -> ResearchDataManager.load(tag)), DATA_NAME);
     }
-    
+
     public static ResearchData get(Player player) {
         if (player.level() instanceof ServerLevel serverLevel) {
             // Route through the overworld-backed manager (research is global per save/server)
@@ -41,7 +37,7 @@ public class ResearchDataManager extends SavedData {
         }
         return new ResearchData(); // Return empty data for client
     }
-    
+
     public ResearchData getPlayerResearchData(UUID playerId) {
         return playerResearchData.computeIfAbsent(playerId, k -> {
             ResearchData data = new ResearchData();
@@ -49,18 +45,18 @@ public class ResearchDataManager extends SavedData {
             return data;
         });
     }
-    
+
     public void markDirty() {
         setDirty();
     }
-    
+
     public void setPlayerResearchData(UUID playerId, ResearchData data) {
         playerResearchData.put(playerId, data);
         setDirty();
     }
-    
+
     @Override
-    public CompoundTag save(@Nonnull CompoundTag tag) {
+    public CompoundTag save(@Nonnull CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
         CompoundTag playersTag = new CompoundTag();
         for (Map.Entry<UUID, ResearchData> entry : playerResearchData.entrySet()) {
             playersTag.put(entry.getKey().toString(), entry.getValue().serializeNBT());
@@ -68,10 +64,10 @@ public class ResearchDataManager extends SavedData {
         tag.put("players", playersTag);
         return tag;
     }
-    
+
     public static ResearchDataManager load(CompoundTag tag) {
         ResearchDataManager manager = new ResearchDataManager();
-        
+
         if (tag.contains("players")) {
             CompoundTag playersTag = tag.getCompound("players");
             for (String key : playersTag.getAllKeys()) {
@@ -86,7 +82,7 @@ public class ResearchDataManager extends SavedData {
                 }
             }
         }
-        
+
         return manager;
     }
 }

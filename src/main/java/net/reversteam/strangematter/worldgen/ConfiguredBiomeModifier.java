@@ -8,8 +8,8 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
-import net.minecraftforge.common.world.BiomeModifier;
-import net.minecraftforge.common.world.ModifiableBiomeInfo;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
 
 /**
  * A configurable biome modifier that respects config settings for feature placement.
@@ -21,8 +21,8 @@ public record ConfiguredBiomeModifier(
         GenerationStep.Decoration step,
         String featureType  // e.g., "gravity_anomaly", "resonite_ore"
 ) implements BiomeModifier {
-    
-    public static final Codec<ConfiguredBiomeModifier> CODEC = RecordCodecBuilder.create(
+
+    public static final com.mojang.serialization.MapCodec<ConfiguredBiomeModifier> CODEC = RecordCodecBuilder.mapCodec(
         builder -> builder.group(
             Biome.LIST_CODEC.fieldOf("biomes").forGetter(ConfiguredBiomeModifier::biomes),
             PlacedFeature.CODEC.fieldOf("feature").forGetter(ConfiguredBiomeModifier::feature),
@@ -42,10 +42,10 @@ public record ConfiguredBiomeModifier(
     }
 
     @Override
-    public Codec<? extends BiomeModifier> codec() {
+    public com.mojang.serialization.MapCodec<? extends BiomeModifier> codec() {
         return CODEC;
     }
-    
+
     /**
      * Check config to determine if this feature should be enabled
      */

@@ -1,8 +1,8 @@
 package net.reversteam.strangematter.kubejs;
 
 import com.mojang.logging.LogUtils;
-import dev.latvian.mods.kubejs.KubeJSPlugin;
-import dev.latvian.mods.kubejs.script.BindingsEvent;
+import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
+import dev.latvian.mods.kubejs.script.BindingRegistry;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import org.slf4j.Logger;
 
@@ -12,10 +12,10 @@ import org.slf4j.Logger;
  * - Reality Forge recipes
  * - Custom research nodes
  * - Custom research info pages
- * 
+ *
  * RECIPE INTEGRATION:
  * Reality Forge recipes are available through the standard recipe system.
- * 
+ *
  * Example:
  * <pre>
  * ServerEvents.recipes(event => {
@@ -35,10 +35,10 @@ import org.slf4j.Logger;
  *   })
  * })
  * </pre>
- * 
+ *
  * RESEARCH INTEGRATION:
  * Add custom research nodes and info pages.
- * 
+ *
  * Example:
  * <pre>
  * // In startup_scripts (runs once at game start)
@@ -51,7 +51,7 @@ import org.slf4j.Logger;
  *     .cost('energy', 5)
  *     .iconItem('minecraft:diamond')
  *     .prerequisite('reality_forge')
- *   
+ *
  *   // Add info pages to any research node
  *   event.addPages('my_research', pages => {
  *     pages.page()
@@ -62,11 +62,11 @@ import org.slf4j.Logger;
  * })
  * </pre>
  */
-public class StrangeMatterKubeJSPlugin extends KubeJSPlugin {
+public class StrangeMatterKubeJSPlugin implements KubeJSPlugin {
     private static final Logger LOGGER = LogUtils.getLogger();
-    
+
     @Override
-    public void registerBindings(BindingsEvent event) {
+    public void registerBindings(BindingRegistry event) {
         // Register the StrangeMatterHelper as a global binding for all script types
         // This allows scripts to use: StrangeMatter.createResearchNode(), etc.
         LOGGER.info("[Strange Matter] Registering KubeJS bindings...");

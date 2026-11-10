@@ -4,39 +4,41 @@ import net.reversteam.strangematter.block.ResearchMachineBlockEntity;
 import net.reversteam.strangematter.research.ResearchType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class MinigameStatePacket {
+public class MinigameStatePacket implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+ public static final Type<MinigameStatePacket> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "minigame_state_packet"));
+ @Override public Type<MinigameStatePacket> type() { return TYPE; }
     private final BlockPos pos;
     private final Map<ResearchType, Map<String, Object>> minigameStates;
-    
+
     public MinigameStatePacket(BlockPos pos, Map<ResearchType, Map<String, Object>> minigameStates) {
         this.pos = pos;
         this.minigameStates = minigameStates;
     }
-    
+
     public static void encode(MinigameStatePacket packet, FriendlyByteBuf buffer) {
         buffer.writeBlockPos(packet.pos);
-        
+
         // Write the number of research types
         buffer.writeInt(packet.minigameStates.size());
-        
+
         for (Map.Entry<ResearchType, Map<String, Object>> entry : packet.minigameStates.entrySet()) {
             // Write research type name
             buffer.writeUtf(entry.getKey().name());
-            
+
             // Write the state map
             Map<String, Object> state = entry.getValue();
             buffer.writeInt(state.size());
-            
+
             for (Map.Entry<String, Object> stateEntry : state.entrySet()) {
                 buffer.writeUtf(stateEntry.getKey());
                 Object value = stateEntry.getValue();
-                
+
                 // Write value type and data
                 if (value instanceof Boolean) {
                     buffer.writeUtf("boolean");
@@ -57,24 +59,24 @@ public class MinigameStatePacket {
             }
         }
     }
-    
+
     public static MinigameStatePacket new_(FriendlyByteBuf buffer) {
         BlockPos pos = buffer.readBlockPos();
-        
+
         Map<ResearchType, Map<String, Object>> minigameStates = new HashMap<>();
-        
+
         int typeCount = buffer.readInt();
         for (int i = 0; i < typeCount; i++) {
             String typeName = buffer.readUtf();
             ResearchType type = ResearchType.valueOf(typeName);
-            
+
             Map<String, Object> state = new HashMap<>();
             int stateCount = buffer.readInt();
-            
+
             for (int j = 0; j < stateCount; j++) {
                 String key = buffer.readUtf();
                 String valueType = buffer.readUtf();
-                
+
                 Object value;
                 switch (valueType) {
                     case "boolean":
@@ -93,31 +95,31 @@ public class MinigameStatePacket {
                         value = buffer.readUtf();
                         break;
                 }
-                
+
                 state.put(key, value);
             }
-            
+
             minigameStates.put(type, state);
         }
-        
+
         return new MinigameStatePacket(pos, minigameStates);
     }
-    
-    public static void handle(MinigameStatePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public static void handle(MinigameStatePacket packet, Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
         context.enqueueWork(() -> {
-            if (context.getSender() != null) {
+            if ((context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null) != null) {
                 // Server side - save minigame states to block entity
-                var player = context.getSender();
+                var player = (context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null);
                 var level = player.level();
                 var blockEntity = level.getBlockEntity(packet.pos);
-                
+
                 if (blockEntity instanceof ResearchMachineBlockEntity researchMachine) {
                     researchMachine.setMinigameStates(packet.minigameStates);
                 }
             }
         });
-        context.setPacketHandled(true);
+
     }
 }
 

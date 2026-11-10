@@ -11,12 +11,12 @@ import java.util.*;
 public class ResearchNodeRegistry {
     private static final Map<String, ResearchNode> nodes = new HashMap<>();
     private static final Map<String, List<ResearchNode>> nodesByCategory = new HashMap<>();
-    
+
     public static void register(ResearchNode node) {
         nodes.put(node.getId(), node);
         nodesByCategory.computeIfAbsent(node.getCategory(), k -> new ArrayList<>()).add(node);
     }
-    
+
     /**
      * Convert ResearchType cost map to string-keyed map for ResearchNode.
      */
@@ -30,7 +30,7 @@ public class ResearchNodeRegistry {
         }
         return out;
     }
-    
+
     /**
      * Apply config multiplier and overrides to research costs
      */
@@ -38,11 +38,11 @@ public class ResearchNodeRegistry {
         if (defaultCosts.isEmpty()) {
             return defaultCosts; // Don't modify unlocked nodes
         }
-        
+
         // Check for individual override first
         int overrideCost = getIndividualCostOverride(nodeId);
         Map<ResearchType, Integer> costs = new HashMap<>(defaultCosts);
-        
+
         if (overrideCost > 0) {
             // Apply individual override - distribute evenly among research types
             int costPerType = Math.max(1, overrideCost / costs.size());
@@ -57,10 +57,10 @@ public class ResearchNodeRegistry {
                 costs.put(entry.getKey(), newCost);
             }
         }
-        
+
         return costs;
     }
-    
+
     /**
      * Get individual cost override for a specific node
      */
@@ -86,32 +86,32 @@ public class ResearchNodeRegistry {
             default -> -1; // Use default
         };
     }
-    
+
     public static ResearchNode getNode(String id) {
         return nodes.get(id);
     }
-    
+
     public static List<ResearchNode> getNodesByCategory(String category) {
         return nodesByCategory.getOrDefault(category, Collections.emptyList());
     }
-    
+
     public static List<String> getCategories() {
         return new ArrayList<>(nodesByCategory.keySet());
     }
-    
+
     public static Collection<ResearchNode> getAllNodes() {
         return nodes.values();
     }
-    
+
     public static void initializeDefaultNodes() {
         // Clear existing nodes and categories
         nodes.clear();
         nodesByCategory.clear();
         ResearchCategoryRegistry.clear();
-        
+
         // Initialize default categories
         initializeDefaultCategories();
-        
+
         // Also reset custom research registry when reloading
         try {
             Class<?> customRegistry = Class.forName("net.reversteam.strangematter.kubejs.CustomResearchRegistry");
@@ -119,7 +119,7 @@ public class ResearchNodeRegistry {
         } catch (Exception e) {
             // KubeJS not loaded or class not found - this is fine
         }
-        
+
         /*
          * Research Tree Layout:
          * - Default unlocked research forms a central hub around "Research"
@@ -127,9 +127,9 @@ public class ResearchNodeRegistry {
          * - Anomaly type specializations branch from "Anomaly Types"
          * - All connections are within reasonable distances to prevent line disappearing
          */
-        
+
         // ===== DEFAULT UNLOCKED RESEARCH (Center Group) =====
-        
+
         // Main research introduction node (unlocked by default) - CENTER
         register(new ResearchNode(
             "research",
@@ -141,7 +141,7 @@ public class ResearchNodeRegistry {
             true,
             List.of() // No prerequisites - this is the starting node
         ));
-        
+
         // Field Scanner tool (unlocked by default) - LEFT
         register(new ResearchNode(
             "field_scanner",
@@ -153,7 +153,7 @@ public class ResearchNodeRegistry {
             false,
             List.of("research") // Requires main research
         ));
-        
+
         // Anomaly shard ore generation and collection (unlocked by default) - RIGHT
         register(new ResearchNode(
             "anomaly_shards",
@@ -165,7 +165,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("research") // Requires main research
         ));
-        
+
         // Understanding different anomaly types (unlocked by default) - TOP
         register(new ResearchNode(
             "anomaly_types",
@@ -177,7 +177,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("research") // Requires main research
         ));
-        
+
         // Resonite ore collection and usage (unlocked by default) - BOTTOM LEFT
         register(new ResearchNode(
             "resonite",
@@ -189,7 +189,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("research") // Requires main research
         ));
-        
+
         // Tinfoil Hat protective armor (locked) - Connected to resonite
         register(new ResearchNode(
             "tinfoil_hat",
@@ -201,7 +201,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("resonite") // Requires resonite research
         ));
-        
+
         // Resonant Power description and Resonant Burner power generation (unlocked by default) - BOTTOM RIGHT
         register(new ResearchNode(
             "resonant_energy",
@@ -213,9 +213,9 @@ public class ResearchNodeRegistry {
             true,
             List.of("research") // Requires main research
         ));
-        
+
         // ===== LOCKED RESEARCH (Connected to unlocked nodes) =====
-        
+
         // Anomaly Resonator tool (locked) - Connected to field_scanner
         register(new ResearchNode(
             "anomaly_resonator",
@@ -227,7 +227,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("field_scanner") // Requires field scanner
         ));
-        
+
         // Reality Forge machine (locked) - Connected to resonite and anomaly_types
         // This stays in "general" category
         register(new ResearchNode(
@@ -240,11 +240,11 @@ public class ResearchNodeRegistry {
             true,
             List.of("resonite") // Requires resonite and anomaly types
         ));
-        
+
         // ===== REALITY FORGE CATEGORY NODES =====
         // Only nodes that directly require reality_forge are moved to this category
         // All prerequisites stay as "reality_forge" to maintain connections
-        
+
         // Duplicate Reality Forge node in reality_forge category (same position as original, auto-unlocks when category unlocks)
         register(new ResearchNode(
             "reality_forge_category",
@@ -256,7 +256,7 @@ public class ResearchNodeRegistry {
             true,
             List.of() // No prerequisites - auto-unlocks when category becomes visible
         ));
-        
+
         // Resonance Condenser machine (locked) - Connected to reality_forge_category
         register(new ResearchNode(
             "resonance_condenser",
@@ -268,7 +268,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("reality_forge_category") // Requires reality_forge_category node in this category
         ));
-        
+
         // Echo Vacuum tool and Containment capsule system (locked) - Connected to reality_forge_category
         register(new ResearchNode(
             "containment_basics",
@@ -280,7 +280,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("reality_forge_category") // Requires reality_forge_category node in this category
         ));
-        
+
         // Echoform Imprinter tool (locked) - Connected to containment_basics (in reality_forge category)
         register(new ResearchNode(
             "echoform_imprinter",
@@ -292,7 +292,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("containment_basics") // Requires containment_basics
         ));
-        
+
         // Warp Gun weapon (locked) - Connected to containment_basics (in reality_forge category)
         register(new ResearchNode(
             "warp_gun",
@@ -304,7 +304,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("containment_basics") // Requires containment_basics
         ));
-        
+
         // Chrono Blister gadget (locked) - Connected to temporal_anomalies (in reality_forge category)
         register(new ResearchNode(
             "chrono_blister",
@@ -316,7 +316,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("containment_basics") // Requires containment_basics
         ));
-        
+
         // Graviton Hammer tool (locked) - Connected to containment_basics (in reality_forge category)
         register(new ResearchNode(
             "graviton_hammer",
@@ -328,7 +328,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("containment_basics") // Requires containment_basics
         ));
-        
+
         // Stasis Projector device (locked) - Connected to reality_forge_category
         register(new ResearchNode(
             "stasis_projector",
@@ -340,7 +340,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("reality_forge_category") // Requires reality_forge_category node in this category
         ));
-        
+
         register(new ResearchNode(
             "rift_stabilizer",
             "reality_forge",
@@ -351,7 +351,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("reality_forge_category") // Requires reality_forge_category node in this category
         ));
-        
+
         // Levitation Pad device (locked) - Connected to reality_forge_category
         register(new ResearchNode(
             "levitation_pad",
@@ -363,7 +363,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("reality_forge_category") // Requires reality_forge_category node in this category
         ));
-        
+
         // Hoverboard vehicle (locked) - Connected to containment_basics (in reality_forge category)
         register(new ResearchNode(
             "hoverboard",
@@ -375,9 +375,9 @@ public class ResearchNodeRegistry {
             true,
             List.of("containment_basics") // Requires containment_basics
         ));
-        
+
         // ===== ANOMALY TYPES (SPECIALIZED RESEARCH) =====
-        
+
         // Gravity anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "gravity_anomalies",
@@ -389,7 +389,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Temporal anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "temporal_anomalies",
@@ -401,7 +401,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Spatial anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "spatial_anomalies",
@@ -413,7 +413,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Energy anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "energy_anomalies",
@@ -425,7 +425,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Shadow anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "shadow_anomalies",
@@ -437,7 +437,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Cognitive anomaly research (locked) - Connected to anomaly_types
         register(new ResearchNode(
             "cognitive_anomalies",
@@ -449,7 +449,7 @@ public class ResearchNodeRegistry {
             true,
             List.of("anomaly_types") // Requires anomaly types
         ));
-        
+
         // Initialize custom research nodes from KubeJS (if available)
         try {
             Class<?> customRegistry = Class.forName("net.reversteam.strangematter.kubejs.CustomResearchRegistry");
@@ -457,7 +457,7 @@ public class ResearchNodeRegistry {
         } catch (Exception e) {
             // KubeJS not loaded or class not found - this is fine
         }
-        
+
         // Initialize custom research nodes from KubeJS (if available)
         try {
             Class<?> customRegistry = Class.forName("net.reversteam.strangematter.kubejs.CustomResearchRegistry");
@@ -465,7 +465,7 @@ public class ResearchNodeRegistry {
         } catch (Exception e) {
             // KubeJS not loaded or class not found - this is fine
         }
-        
+
         // Initialize custom categories from KubeJS (if available)
         try {
             Class<?> customRegistry = Class.forName("net.reversteam.strangematter.kubejs.CustomResearchRegistry");
@@ -473,11 +473,11 @@ public class ResearchNodeRegistry {
         } catch (Exception e) {
             // KubeJS not loaded or class not found - this is fine
         }
-        
+
         // Load saved node positions on client side (after all nodes are registered)
         loadSavedPositions();
     }
-    
+
     /**
      * Initialize default research categories.
      */
@@ -492,7 +492,7 @@ public class ResearchNodeRegistry {
             0, // First category
             "research" // Root node to auto-focus when tab selected
         ));
-        
+
         // Reality Forge category - hidden until reality_forge research unlocks; root node "reality_forge_category"
         ResearchCategoryRegistry.register(new ResearchCategory(
             "reality_forge",
@@ -504,17 +504,17 @@ public class ResearchNodeRegistry {
             "reality_forge_category" // Root node to auto-focus when tab selected
         ));
     }
-    
+
     /**
      * Load saved node positions from file (client-side only).
      * This is called after all nodes are registered, including KubeJS nodes.
      */
     private static void loadSavedPositions() {
         // Only load on client side
-        if (net.minecraftforge.fml.loading.FMLEnvironment.dist != net.minecraftforge.api.distmarker.Dist.CLIENT) {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT) {
             return;
         }
-        
+
         try {
             Class<?> positionManager = Class.forName("net.reversteam.strangematter.client.research.ResearchNodePositionManager");
             Object instance = positionManager.getMethod("getInstance").invoke(null);

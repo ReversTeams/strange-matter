@@ -15,10 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
-    
+
     private static final ResourceLocation GUI_TEXTURE = ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "textures/gui/reality_forge.png");
     private static final ResourceLocation EJECT_BUTTON_TEXTURE = ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "textures/ui/eject_button.png");
-    
+
     // Shard colors
     private static final int SHADOW_COLOR = 0xFF8752d0;
     private static final int GRAVITY_COLOR = 0xFFd75335;
@@ -26,38 +26,38 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
     private static final int COGNITION_COLOR = 0xFF54c55b;
     private static final int TIME_COLOR = 0xFFe6b538;
     private static final int SPACE_COLOR = 0xFF3d88dd;
-    
+
     private int animationTick = 0;
     private boolean ejectButtonHovered = false;
     private boolean ejectButtonPressed = false;
-    
+
     public RealityForgeScreen(RealityForgeMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title, GUI_TEXTURE);
         this.imageWidth = 176;
         this.imageHeight = 148;
     }
-    
-    
-    
+
+
+
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         super.renderBg(guiGraphics, partialTick, mouseX, mouseY);
-        
+
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
-        
+
         // Render spinning shards around output slot
         renderSpinningShards(guiGraphics, x + 130, y + 37, partialTick);
-        
-        
+
+
         // Render custom eject button (8x8 texture, positioned under shard slot and centered)
         renderEjectButton(guiGraphics, x + 41, y + 44, mouseX, mouseY);
     }
-    
+
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         super.renderLabels(guiGraphics, mouseX, mouseY);
-        
+
         // Render machine-specific labels (implemented by subclasses)
         renderMachineLabels(guiGraphics, mouseX, mouseY);
     }
@@ -66,23 +66,23 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
     protected void renderMachineLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         // No machine-specific labels needed - title is handled by BaseMachineScreen
     }
-    
+
     private void renderSpinningShards(GuiGraphics guiGraphics, int centerX, int centerY, float partialTick) {
         Map<String, Integer> storedShards = menu.getStoredShards();
         List<String> shardOrder = menu.getShardOrder();
-        
+
         // Get synchronized shard count from ContainerData (like crafting progress)
         int synchronizedShardCount = 0;
         if (menu.getDataAccess() != null) {
             synchronizedShardCount = menu.getDataAccess().get(8); // Index 8 is total shard count
         }
-        
+
         // Use synchronized data instead of block entity data
         if (synchronizedShardCount == 0) return;
-        
+
         float time = (animationTick + partialTick) * 0.1f;
         int radius = 25;
-        
+
         // Get crafting progress from synchronized data (like ResonantBurnerScreen)
         int craftTicks = 0;
         boolean isCrafting = false;
@@ -90,18 +90,18 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             isCrafting = menu.getDataAccess().get(9) == 1; // Index 9 is crafting state
             craftTicks = menu.getDataAccess().get(10); // Index 10 is craft progress
         }
-        
+
         // Also don't render if crafting is complete (craftTicks >= 100)
         if (isCrafting && craftTicks >= 100) {
             return;
         }
-        
-        
+
+
         // Calculate coalescing progress (0-100)
         int coalesceProgress = isCrafting ? (craftTicks * 100) / 100 : 0; // CRAFT_TIME is 100
         boolean isCoalescing = isCrafting && craftTicks > 0;
-        
-        
+
+
         // Create a list of all individual shards to render
         List<String> allShards = new ArrayList<>();
         for (String shardType : shardOrder) {
@@ -110,14 +110,14 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
                 allShards.add(shardType);
             }
         }
-        
+
         // Render each shard individually
         for (int i = 0; i < allShards.size(); i++) {
             String shardType = allShards.get(i);
             float angle = time + (i * 2.0f * (float) Math.PI / Math.max(allShards.size(), 1));
-            
+
             int shardX, shardY;
-            
+
             if (isCoalescing) {
                 // Coalescing animation: shards move toward center
                 float coalesceFactor = coalesceProgress / 100.0f;
@@ -129,10 +129,10 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
                 shardX = centerX + (int) (Math.cos(angle) * radius);
                 shardY = centerY + (int) (Math.sin(angle) * radius);
             }
-            
+
             // Render shard
             renderShard(guiGraphics, shardX, shardY, shardType);
-            
+
             if (isCoalescing) {
                 // When crafting: particles stream from shard toward center
                 renderConvergenceParticles(guiGraphics, shardX, shardY, centerX, centerY, getShardColor(shardType));
@@ -142,12 +142,12 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             }
         }
     }
-    
+
     private void renderShard(GuiGraphics guiGraphics, int x, int y, String shardType) {
         ResourceLocation shardTexture = getShardTexture(shardType);
         guiGraphics.blit(shardTexture, x - 8, y - 8, 0, 0, 16, 16, 16, 16);
     }
-    
+
     /** Trail behind the shard along its orbit (used only when not crafting). */
     private void renderParticleTrail(GuiGraphics guiGraphics, int x, int y, String shardType, float angle) {
         int color = getShardColor(shardType);
@@ -162,7 +162,7 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             guiGraphics.fill(trailX - size, trailY - size, trailX + size, trailY + size, (alpha << 24) | (color & 0xFFFFFF));
         }
     }
-    
+
     /** When crafting, draw particles streaming from the shard toward the center to emphasize convergence. */
     private void renderConvergenceParticles(GuiGraphics guiGraphics, int fromX, int fromY, int toX, int toY, int color) {
         int count = 12;
@@ -176,7 +176,7 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             guiGraphics.fill(px - size, py - size, px + size, py + size, (alpha << 24) | (color & 0xFFFFFF));
         }
     }
-    
+
     private ResourceLocation getShardTexture(String shardType) {
         return switch (shardType) {
             case "energetic" -> ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "textures/item/energetic_shard.png");
@@ -188,7 +188,7 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             default -> ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "textures/item/energetic_shard.png");
         };
     }
-    
+
     private int getShardColor(String shardType) {
         return switch (shardType) {
             case "energetic" -> ENERGY_COLOR;
@@ -200,25 +200,24 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             default -> ENERGY_COLOR;
         };
     }
-    
+
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
     }
-    
+
     private void renderEjectButton(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
         // Check if mouse is hovering over the button (8x8 area)
         boolean hovered = mouseX >= x && mouseX < x + 8 && mouseY >= y && mouseY < y + 8;
         this.ejectButtonHovered = hovered;
-        
+
         // Check if crafting is active
         boolean isCrafting = this.menu.isCrafting();
-        
+
         // Render the 8x8 eject button texture
         guiGraphics.blit(EJECT_BUTTON_TEXTURE, x, y, 0, 0, 8, 8, 8, 8);
-        
+
         // Add visual feedback based on state
         if (isCrafting) {
             // Show locked state with gray overlay
@@ -228,10 +227,10 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             guiGraphics.fill(x, y, x + 8, y + 8, 0x80FFFFFF); // Semi-transparent white overlay
         }
     }
-    
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        
+
         if (button == 0) { // Left click
             int guiX = (this.width - this.imageWidth) / 2;
             int guiY = (this.height - this.imageHeight) / 2;
@@ -241,15 +240,15 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
             // Check if eject button was clicked
             if (mouseX >= buttonX && mouseX < buttonX + 8 &&
                 mouseY >= buttonY && mouseY < buttonY + 8) {
-                
+
                 // Check if crafting is active - lock eject button during crafting
                 if (this.menu.isCrafting()) {
                     return true; // Block the click
                 }
-                
+
                 this.menu.ejectShards();
                 this.ejectButtonPressed = true;
-                
+
                 // Immediately clear shards on client side for visual feedback
                 if (this.menu.getBlockEntity() != null) {
                     this.menu.getBlockEntity().clearShardsForEject();
@@ -257,11 +256,11 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
                 return true;
             }
         }
-        
+
         boolean result = super.mouseClicked(mouseX, mouseY, button);
         return result;
     }
-    
+
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0) {
@@ -269,7 +268,7 @@ public class RealityForgeScreen extends BaseMachineScreen<RealityForgeMenu> {
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
-    
+
     @Override
     public void containerTick() {
         super.containerTick();

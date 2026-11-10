@@ -22,48 +22,48 @@ import java.util.List;
 
 public class ResearchNodeInfoScreen extends Screen {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation("strangematter:textures/ui/research_tablet_background.png");
-    
+    private static final ResourceLocation BACKGROUND_TEXTURE = ResourceLocation.parse("strangematter:textures/ui/research_tablet_background.png");
+
     /** Remember last viewed node and page when closed from the Research Tablet, so the tablet can reopen it. */
     private static String lastViewedNodeId = null;
     private static int lastViewedPage = 0;
     /** When true, removed() will not save (user closed via X button). */
     private static boolean skipSaveOnNextRemoved = false;
-    
+
     private final ResearchNode node;
     private final Screen parentScreen;
     private int currentPage = 0;
     private List<InfoPage> pages;
-    
+
     // UI dimensions
     private int guiX, guiY;
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 240;
-    
+
     // Navigation buttons
     private Button prevButton, nextButton, closeButton;
-    
+
     public ResearchNodeInfoScreen(ResearchNode node, Screen parentScreen) {
         super(node.getDisplayName());
         this.node = node;
         this.parentScreen = parentScreen;
         this.pages = new ArrayList<>();
-        
+
         // Initialize pages (will be populated with recipes and screenshots)
         initializePages();
     }
-    
+
     public ResearchNodeInfoScreen(ResearchNode node, Screen parentScreen, int startingPage) {
         super(node.getDisplayName());
         this.node = node;
         this.parentScreen = parentScreen;
         this.currentPage = startingPage;
         this.pages = new ArrayList<>();
-        
+
         // Initialize pages (will be populated with recipes and screenshots)
         initializePages();
     }
-    
+
     private void initializePages() {
         // First, load the built-in pages
         if (node.getId().equals("research")) {
@@ -127,11 +127,11 @@ public class ResearchNodeInfoScreen extends Screen {
                 initializeDefaultPages();
             }
         }
-        
+
         // After loading built-in pages, append any custom pages from KubeJS
         loadCustomPages();
     }
-    
+
     /**
      * Check if custom pages will be loaded from KubeJS for this node.
      */
@@ -145,7 +145,7 @@ public class ResearchNodeInfoScreen extends Screen {
             return false;
         }
     }
-    
+
     /**
      * Load and append custom info pages from KubeJS if available.
      * Custom pages are added AFTER the built-in pages.
@@ -155,29 +155,29 @@ public class ResearchNodeInfoScreen extends Screen {
             // Try to load custom pages from KubeJS
             Class<?> customRegistry = Class.forName("net.reversteam.strangematter.kubejs.CustomResearchRegistry");
             Class<?> researchInfoPage = Class.forName("net.reversteam.strangematter.kubejs.ResearchInfoPage");
-            
+
             LOGGER.info("[Strange Matter] Checking for custom pages for node: {}", node.getId());
-            
+
             // Check if custom pages exist for this node
             Boolean hasPages = (Boolean) customRegistry.getMethod("hasCustomPages", String.class)
                 .invoke(null, node.getId());
-            
+
             LOGGER.info("[Strange Matter] Has custom pages: {}", hasPages);
-            
+
             if (hasPages != null && hasPages) {
                 // Get the custom pages
                 @SuppressWarnings("unchecked")
                 java.util.List<Object> customPages = (java.util.List<Object>) customRegistry
                     .getMethod("getInfoPages", String.class)
                     .invoke(null, node.getId());
-                
+
                 LOGGER.info("[Strange Matter] Retrieved {} custom pages", (customPages != null ? customPages.size() : 0));
-                
+
                 if (customPages != null && !customPages.isEmpty()) {
                     // Convert custom pages to InfoPage objects
                     for (Object customPage : customPages) {
                         InfoPage page = new InfoPage();
-                        
+
                         // Use reflection to get fields from ResearchInfoPage
                         page.title = (String) researchInfoPage.getField("title").get(customPage);
                         page.content = (String) researchInfoPage.getField("content").get(customPage);
@@ -186,11 +186,11 @@ public class ResearchNodeInfoScreen extends Screen {
                         page.recipeName = (String) researchInfoPage.getField("recipeName").get(customPage);
                         page.isRealityForgeRecipe = (Boolean) researchInfoPage.getField("isRealityForgeRecipe").get(customPage);
                         page.screenshotPath = (String) researchInfoPage.getField("screenshotPath").get(customPage);
-                        
+
                         LOGGER.info("[Strange Matter] Adding custom page: {}", page.title);
                         pages.add(page);
                     }
-                    
+
                     LOGGER.info("[Strange Matter] Appended {} custom pages to research node: {}", customPages.size(), node.getId());
                 }
             }
@@ -199,7 +199,7 @@ public class ResearchNodeInfoScreen extends Screen {
             LOGGER.error("[Strange Matter] Error loading custom pages for {}: {}", node.getId(), e.getMessage(), e);
         }
     }
-    
+
     private void initializeResearchPages() {
         // Page 1: Introduction to Research
         InfoPage intro = new InfoPage();
@@ -208,7 +208,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.hasRecipes = false;
         intro.hasScreenshots = false;
         pages.add(intro);
-        
+
         // Page 2: Field Scanner (with recipe)
         InfoPage fieldScanner = new InfoPage();
         fieldScanner.title = "research.strangematter.research.field_scanner.title";
@@ -217,7 +217,7 @@ public class ResearchNodeInfoScreen extends Screen {
         fieldScanner.hasScreenshots = false;
         fieldScanner.recipeName = "strangematter:field_scanner";
         pages.add(fieldScanner);
-        
+
         // Page 3: Research Tablet (with recipe)
         InfoPage researchTablet = new InfoPage();
         researchTablet.title = "research.strangematter.research.research_tablet.title";
@@ -226,7 +226,7 @@ public class ResearchNodeInfoScreen extends Screen {
         researchTablet.hasScreenshots = false;
         researchTablet.recipeName = "strangematter:research_tablet";
         pages.add(researchTablet);
-        
+
         // Page 4: Using the Research Machine (with recipe)
         InfoPage machineUsage = new InfoPage();
         machineUsage.title = "research.strangematter.research.machine_usage.title";
@@ -235,7 +235,7 @@ public class ResearchNodeInfoScreen extends Screen {
         machineUsage.hasScreenshots = false;
         machineUsage.recipeName = "strangematter:research_machine";
         pages.add(machineUsage);
-        
+
         // Page 3: Research Minigames
         InfoPage minigames = new InfoPage();
         minigames.title = "research.strangematter.research.minigames.title";
@@ -244,7 +244,7 @@ public class ResearchNodeInfoScreen extends Screen {
         minigames.hasScreenshots = true;
         minigames.screenshotPath = "strangematter:textures/ui/research_minigames_overview.png";
         pages.add(minigames);
-        
+
         // Page 4: Understanding Instability
         InfoPage instability = new InfoPage();
         instability.title = "research.strangematter.research.instability.title";
@@ -254,7 +254,7 @@ public class ResearchNodeInfoScreen extends Screen {
         instability.screenshotPath = "strangematter:textures/ui/instability_gauge_example.png";
         pages.add(instability);
     }
-    
+
     private void initializeFoundationPages() {
         // Page 1: Introduction to Anomaly Research
         InfoPage intro = new InfoPage();
@@ -263,7 +263,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.hasRecipes = false;
         intro.hasScreenshots = false;
         pages.add(intro);
-        
+
         // Page 2: Research Types
         InfoPage researchTypes = new InfoPage();
         researchTypes.title = "research.strangematter.foundation.types.title";
@@ -271,7 +271,7 @@ public class ResearchNodeInfoScreen extends Screen {
         researchTypes.hasRecipes = false;
         researchTypes.hasScreenshots = false;
         pages.add(researchTypes);
-        
+
         // Page 3: Field Scanner Recipe
         InfoPage scannerRecipe = new InfoPage();
         scannerRecipe.title = "research.strangematter.foundation.scanner.title";
@@ -281,7 +281,7 @@ public class ResearchNodeInfoScreen extends Screen {
         // recipeItems no longer needed - extracted programmatically from recipe registry
         scannerRecipe.recipeName = "strangematter:field_scanner";
         pages.add(scannerRecipe);
-        
+
         // Page 4: Using the Field Scanner
         InfoPage scannerUsage = new InfoPage();
         scannerUsage.title = "research.strangematter.foundation.scanner_usage.title";
@@ -291,7 +291,7 @@ public class ResearchNodeInfoScreen extends Screen {
         scannerUsage.screenshotPath = "strangematter:textures/ui/foundation_scanner_usage.png";
         pages.add(scannerUsage);
     }
-    
+
     private void initializeResonatorPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -301,7 +301,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.hasScreenshots = false;
         intro.recipeName = "strangematter:anomaly_resonator";
         pages.add(intro);
-        
+
         // Page 2: How It Works and Usage
         InfoPage mechanics = new InfoPage();
         mechanics.title = "research.strangematter.anomaly_resonator.mechanics.title";
@@ -310,7 +310,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.hasScreenshots = false;
         pages.add(mechanics);
     }
-    
+
     private void initializeFieldScannerPages() {
         // Page 1: Introduction to Field Scanner
         InfoPage intro = new InfoPage();
@@ -321,7 +321,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.recipeName = "strangematter:field_scanner";
         pages.add(intro);
     }
-    
+
     private void initializeAnomalyShardsPages() {
         // Page 1: Introduction to Anomaly Shards
         InfoPage intro = new InfoPage();
@@ -331,7 +331,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.hasScreenshots = true;
         intro.screenshotPath = "strangematter:textures/ui/anomaly_shard_ore.png";
         pages.add(intro);
-        
+
         // Page 2: Formation Process
         InfoPage formation = new InfoPage();
         formation.title = "research.strangematter.anomaly_shards.formation.title";
@@ -341,7 +341,7 @@ public class ResearchNodeInfoScreen extends Screen {
         formation.recipeName = null;
         formation.screenshotPath = null;
         pages.add(formation);
-        
+
         // Page 3: Shard Categories
         InfoPage categories = new InfoPage();
         categories.title = "research.strangematter.anomaly_shards.categories.title";
@@ -351,7 +351,7 @@ public class ResearchNodeInfoScreen extends Screen {
         categories.recipeName = null;
         categories.screenshotPath = null;
         pages.add(categories);
-        
+
         // Page 4: Collection Methods
         InfoPage collection = new InfoPage();
         collection.title = "research.strangematter.anomaly_shards.collection.title";
@@ -362,7 +362,7 @@ public class ResearchNodeInfoScreen extends Screen {
         collection.screenshotPath = null;
         pages.add(collection);
     }
-    
+
     private void initializeAnomalyTypesPages() {
         // Page 1: Introduction to Anomaly Types
         InfoPage intro = new InfoPage();
@@ -371,7 +371,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.hasRecipes = false;
         intro.hasScreenshots = false;
         pages.add(intro);
-        
+
         // Page 2: The Six Fundamental Types
         InfoPage fundamentalTypes = new InfoPage();
         fundamentalTypes.title = "research.strangematter.anomaly_types.fundamental.title";
@@ -379,7 +379,7 @@ public class ResearchNodeInfoScreen extends Screen {
         fundamentalTypes.hasRecipes = false;
         fundamentalTypes.hasScreenshots = false;
         pages.add(fundamentalTypes);
-        
+
         // Page 3: Type Interactions
         InfoPage interactions = new InfoPage();
         interactions.title = "research.strangematter.anomaly_types.interactions.title";
@@ -387,7 +387,7 @@ public class ResearchNodeInfoScreen extends Screen {
         interactions.hasRecipes = false;
         interactions.hasScreenshots = false;
         pages.add(interactions);
-        
+
         // Page 4: Research Applications
         InfoPage applications = new InfoPage();
         applications.title = "research.strangematter.anomaly_types.applications.title";
@@ -396,7 +396,7 @@ public class ResearchNodeInfoScreen extends Screen {
         applications.hasScreenshots = false;
         pages.add(applications);
     }
-    
+
     private void initializeResonitePages() {
         // Page 1: Introduction with Screenshot
         InfoPage intro = new InfoPage();
@@ -425,7 +425,7 @@ public class ResearchNodeInfoScreen extends Screen {
         circuit.recipeName = "strangematter:resonant_circuit";
         pages.add(circuit);
     }
-    
+
     private void initializeResonantEnergyPages() {
         // Page 1: Introduction to Resonant Energy
         InfoPage intro = new InfoPage();
@@ -446,7 +446,7 @@ public class ResearchNodeInfoScreen extends Screen {
         burner.recipeName = "strangematter:resonant_burner";
         pages.add(burner);
     }
-    
+
     private void initializeRealityForgePages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -466,7 +466,7 @@ public class ResearchNodeInfoScreen extends Screen {
         usage.screenshotPath = "strangematter:textures/ui/reality_forge.png";
         pages.add(usage);
     }
-    
+
     private void initializeResonanceCondenserPages() {
         // Page 1: Introduction with Reality Forge Recipe
         InfoPage intro = new InfoPage();
@@ -488,7 +488,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.screenshotPath = "strangematter:textures/ui/resonance_condenser.png";
         pages.add(mechanics);
     }
-    
+
     private void initializeContainmentBasicsPages() {
         // Page 1: Introduction with Echo Vacuum Recipe
         InfoPage intro = new InfoPage();
@@ -510,7 +510,7 @@ public class ResearchNodeInfoScreen extends Screen {
         capsule.isRealityForgeRecipe = true;
         pages.add(capsule);
     }
-    
+
     private void initializeEchoformImprinterPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -521,7 +521,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.recipeName = "strangematter:echoform_imprinter";
         intro.isRealityForgeRecipe = true;
         pages.add(intro);
-        
+
         // Page 2: Operational Protocols
         InfoPage usage = new InfoPage();
         usage.title = "research.strangematter.echoform_imprinter.usage.title";
@@ -531,7 +531,7 @@ public class ResearchNodeInfoScreen extends Screen {
         usage.recipeName = null;
         usage.screenshotPath = null;
         pages.add(usage);
-        
+
         // Page 3: Shadow-Cognitive Theory
         InfoPage theory = new InfoPage();
         theory.title = "research.strangematter.echoform_imprinter.theory.title";
@@ -542,7 +542,7 @@ public class ResearchNodeInfoScreen extends Screen {
         theory.screenshotPath = null;
         pages.add(theory);
     }
-    
+
     private void initializeWarpGunPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -562,7 +562,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.hasScreenshots = false;
         pages.add(mechanics);
     }
-    
+
     private void initializeGravitonHammerPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -584,7 +584,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.screenshotPath = null;
         pages.add(mechanics);
     }
-    
+
     private void initializeChronoBlisterPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -604,7 +604,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.hasScreenshots = false;
         pages.add(mechanics);
     }
-    
+
     private void initializeStasisProjectorPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -625,7 +625,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.recipeName = null;
         mechanics.screenshotPath = null;
         pages.add(mechanics);
-        
+
         // Page 3: Applications
         InfoPage applications = new InfoPage();
         applications.title = "research.strangematter.stasis_projector.applications.title";
@@ -636,7 +636,7 @@ public class ResearchNodeInfoScreen extends Screen {
         applications.screenshotPath = null;
         pages.add(applications);
     }
-    
+
     private void initializeRiftStabilizerPages() {
         // Page 1: Introduction with Recipe
         InfoPage intro = new InfoPage();
@@ -657,7 +657,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.recipeName = null;
         mechanics.screenshotPath = null;
         pages.add(mechanics);
-        
+
         // Page 3: Installation & Operation
         InfoPage usage = new InfoPage();
         usage.title = "research.strangematter.rift_stabilizer.usage.title";
@@ -668,7 +668,7 @@ public class ResearchNodeInfoScreen extends Screen {
         usage.screenshotPath = null;
         pages.add(usage);
     }
-    
+
     private void initializeGravityAnomaliesPages() {
         // Page 1: Gravity Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -679,7 +679,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/gravity_anomaly.png";
         pages.add(intro);
     }
-    
+
     private void initializeTemporalAnomaliesPages() {
         // Page 1: Temporal Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -690,7 +690,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/temporal_bloom.png";
         pages.add(intro);
     }
-    
+
     private void initializeSpatialAnomaliesPages() {
         // Page 1: Spatial Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -701,7 +701,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/warp_gate_anomaly.png";
         pages.add(intro);
     }
-    
+
     private void initializeEnergyAnomaliesPages() {
         // Page 1: Energy Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -712,7 +712,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/energetic_rift.png";
         pages.add(intro);
     }
-    
+
     private void initializeShadowAnomaliesPages() {
         // Page 1: Shadow Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -723,7 +723,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/echoing_shadow.png";
         pages.add(intro);
     }
-    
+
     private void initializeCognitiveAnomaliesPages() {
         // Page 1: Cognitive Anomaly Description with Screenshot
         InfoPage intro = new InfoPage();
@@ -734,7 +734,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.screenshotPath = "strangematter:textures/ui/thoughtwell.png";
         pages.add(intro);
     }
-    
+
     private void initializeLevitationPadPages() {
         // Page 1: Introduction with Recipe (Half Page)
         InfoPage intro = new InfoPage();
@@ -745,7 +745,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.recipeName = "strangematter:levitation_pad";
         intro.isRealityForgeRecipe = true;
         pages.add(intro);
-        
+
         // Page 2: Mechanics (Full Page)
         InfoPage mechanics = new InfoPage();
         mechanics.title = "research.strangematter.levitation_pad.mechanics.title";
@@ -754,7 +754,7 @@ public class ResearchNodeInfoScreen extends Screen {
         mechanics.hasScreenshots = false;
         pages.add(mechanics);
     }
-    
+
     private void initializeHoverboardPages() {
         // Page 1: Introduction with Recipe (Half Page)
         InfoPage intro = new InfoPage();
@@ -766,7 +766,7 @@ public class ResearchNodeInfoScreen extends Screen {
         intro.isRealityForgeRecipe = true;
         pages.add(intro);
     }
-    
+
     private void initializeTinfoilHatPages() {
         // Page 1: Introduction explaining protection
         InfoPage intro = new InfoPage();
@@ -786,7 +786,7 @@ public class ResearchNodeInfoScreen extends Screen {
         recipe.isRealityForgeRecipe = false;
         pages.add(recipe);
     }
-    
+
     private void initializeDefaultPages() {
         // Default pages for other research nodes
         InfoPage basicInfo = new InfoPage();
@@ -795,7 +795,7 @@ public class ResearchNodeInfoScreen extends Screen {
         basicInfo.hasRecipes = hasRecipes();
         basicInfo.hasScreenshots = hasScreenshots();
         pages.add(basicInfo);
-        
+
         if (hasRecipes()) {
             InfoPage recipes = new InfoPage();
             recipes.title = "Recipes";
@@ -804,7 +804,7 @@ public class ResearchNodeInfoScreen extends Screen {
             recipes.hasScreenshots = false;
             pages.add(recipes);
         }
-        
+
         if (hasScreenshots()) {
             InfoPage screenshots = new InfoPage();
             screenshots.title = "Examples";
@@ -814,25 +814,25 @@ public class ResearchNodeInfoScreen extends Screen {
             pages.add(screenshots);
         }
     }
-    
+
     private boolean hasRecipes() {
         // TODO: Check if this node has associated recipes
         return node.getId().equals("foundation") || node.getId().equals("basic_scanner");
     }
-    
+
     private boolean hasScreenshots() {
         // TODO: Check if this node has associated screenshots
         return node.getId().equals("gravity_control") || node.getId().equals("temporal_stability");
     }
-    
+
     @Override
     protected void init() {
         super.init();
-        
+
         // Center the GUI
         guiX = (this.width - GUI_WIDTH) / 2;
         guiY = (this.height - GUI_HEIGHT) / 2;
-        
+
         // Create navigation buttons
         prevButton = Button.builder(
             Component.translatable("gui.strangematter.info_page.previous"),
@@ -840,48 +840,48 @@ public class ResearchNodeInfoScreen extends Screen {
         )
         .bounds(guiX - 50, guiY + GUI_HEIGHT - 30, 40, 20)
         .build();
-        
+
         nextButton = Button.builder(
             Component.translatable("gui.strangematter.info_page.next"),
             (button) -> nextPage()
         )
         .bounds(guiX + GUI_WIDTH + 10, guiY + GUI_HEIGHT - 30, 40, 20)
         .build();
-        
+
         closeButton = Button.builder(
             Component.translatable("gui.strangematter.info_page.close"),
             (button) -> onClose()
         )
         .bounds(guiX + GUI_WIDTH - 30, guiY + 10, 20, 20)
         .build();
-        
+
         addRenderableWidget(prevButton);
         addRenderableWidget(nextButton);
         addRenderableWidget(closeButton);
-        
+
         currentPage = Math.max(0, Math.min(currentPage, pages.isEmpty() ? 0 : pages.size() - 1));
         updateButtonStates();
     }
-    
+
     private void previousPage() {
         if (currentPage > 0) {
             currentPage--;
             updateButtonStates();
         }
     }
-    
+
     private void nextPage() {
         if (currentPage < pages.size() - 1) {
             currentPage++;
             updateButtonStates();
         }
     }
-    
+
     private void updateButtonStates() {
         prevButton.active = currentPage > 0;
         nextButton.active = currentPage < pages.size() - 1;
     }
-    
+
     @Override
     public void removed() {
         if (parentScreen instanceof ResearchTabletScreen && !skipSaveOnNextRemoved) {
@@ -891,7 +891,7 @@ public class ResearchNodeInfoScreen extends Screen {
         skipSaveOnNextRemoved = false;
         super.removed();
     }
-    
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
@@ -903,7 +903,7 @@ public class ResearchNodeInfoScreen extends Screen {
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
-    
+
     @Override
     public void onClose() {
         // X button: close only the info page and return to tablet; don't save in removed() so we don't restore next time
@@ -916,7 +916,7 @@ public class ResearchNodeInfoScreen extends Screen {
             this.minecraft.setScreen(parentScreen);
         }
     }
-    
+
     /** Called by ResearchTabletScreen to restore the last viewed info screen, if any. Returns the screen to open, or null. */
     public static ResearchNodeInfoScreen restoreLastViewedIfAny(ResearchTabletScreen tabletScreen) {
         if (lastViewedNodeId == null || lastViewedNodeId.isEmpty()) {
@@ -932,24 +932,32 @@ public class ResearchNodeInfoScreen extends Screen {
         lastViewedPage = 0;
         return new ResearchNodeInfoScreen(node, tabletScreen, page);
     }
-    
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // The backdrop is rendered explicitly at the beginning of render().
+        // Keep Screen.render() from blurring the page content before its widgets.
+    }
+
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
-        
+        // Blur the world before drawing the research UI. Screen.render() also calls
+        // renderBackground(), so the override below prevents a second late blur.
+        super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+
         // Clear tooltip slots from previous frame
         tooltipSlots.clear();
-        
+
         // Render GUI background
         guiGraphics.fill(guiX, guiY, guiX + GUI_WIDTH, guiY + GUI_HEIGHT, 0xFF2C2C2C);
         guiGraphics.renderOutline(guiX, guiY, GUI_WIDTH, GUI_HEIGHT, 0xFF555555);
-        
+
         // Render page content
         if (currentPage < pages.size()) {
             InfoPage page = pages.get(currentPage);
             renderPage(guiGraphics, page);
         }
-        
+
         // Render page indicator
         Component pageText = Component.translatable("gui.strangematter.info_page.page")
             .append(" ")
@@ -959,13 +967,13 @@ public class ResearchNodeInfoScreen extends Screen {
             .append(" ")
             .append(Component.literal(String.valueOf(pages.size())));
         guiGraphics.drawCenteredString(this.font, pageText, guiX + GUI_WIDTH / 2, guiY + GUI_HEIGHT - 25, 0xFFFFFF);
-        
+
         // Check for tooltips on all rendered item slots
         for (TooltipSlot slot : tooltipSlots) {
             // Calculate absolute position of the slot in screen coordinates
             int absoluteSlotX = slot.x;
             int absoluteSlotY = slot.y;
-            
+
             // Check if mouse is over this tooltip slot
             if (mouseX >= absoluteSlotX && mouseX < absoluteSlotX + slot.size &&
                 mouseY >= absoluteSlotY && mouseY < absoluteSlotY + slot.size) {
@@ -974,15 +982,15 @@ public class ResearchNodeInfoScreen extends Screen {
                 break; // Only show one tooltip at a time
             }
         }
-        
+
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
-    
+
     private void renderPage(GuiGraphics guiGraphics, InfoPage page) {
         // Render title
         Component titleComponent = Component.translatable(page.title);
         guiGraphics.drawCenteredString(this.font, titleComponent, guiX + GUI_WIDTH / 2, guiY + 20, 0xFFFFFF);
-        
+
         if (page.hasRecipes || page.hasScreenshots) {
             // Two-column layout: text on left, recipe/screenshot on right
             renderTwoColumnLayout(guiGraphics, page);
@@ -991,22 +999,22 @@ public class ResearchNodeInfoScreen extends Screen {
             renderSingleColumnLayout(guiGraphics, page);
         }
     }
-    
+
     private void renderTwoColumnLayout(GuiGraphics guiGraphics, InfoPage page) {
         int contentY = guiY + 50;
         int contentHeight = GUI_HEIGHT - 100;
-        
+
         // Left column: text content
         int leftColumnX = guiX + 20;
         int leftColumnWidth = (GUI_WIDTH - 60) / 2; // Half width minus padding
-        
+
         // Right column: recipe
         int rightColumnX = guiX + 20 + leftColumnWidth + 20;
         int rightColumnWidth = (GUI_WIDTH - 60) / 2;
-        
+
         // Render text content in left column
         guiGraphics.drawWordWrap(this.font, Component.translatable(page.content), leftColumnX, contentY, leftColumnWidth, 0xCCCCCC);
-        
+
         // Render right column content (recipe or screenshot)
         if (page.hasRecipes) {
             renderRecipes(guiGraphics, rightColumnX, contentY, rightColumnWidth);
@@ -1014,26 +1022,26 @@ public class ResearchNodeInfoScreen extends Screen {
             renderScreenshots(guiGraphics, rightColumnX, contentY, rightColumnWidth);
         }
     }
-    
+
     private void renderSingleColumnLayout(GuiGraphics guiGraphics, InfoPage page) {
         int contentX = guiX + 20;
         int contentY = guiY + 50;
         int contentWidth = GUI_WIDTH - 40;
-        
+
         // Render content
         guiGraphics.drawWordWrap(this.font, Component.translatable(page.content), contentX, contentY, contentWidth, 0xCCCCCC);
-        
+
         // Render screenshots below if needed
         if (page.hasScreenshots) {
             int textHeight = this.font.wordWrapHeight(Component.translatable(page.content), contentWidth);
             renderScreenshots(guiGraphics, contentX, contentY + textHeight + 20, contentWidth);
         }
     }
-    
+
     private void renderRecipes(GuiGraphics guiGraphics, int x, int y, int width) {
         if (currentPage < pages.size()) {
             InfoPage page = pages.get(currentPage);
-            
+
             if (page.hasRecipes && page.recipeName != null) {
                 if (page.isRealityForgeRecipe) {
                     // Render reality forge recipe with shards in circle
@@ -1042,34 +1050,34 @@ public class ResearchNodeInfoScreen extends Screen {
                     // Draw recipe title
                     guiGraphics.drawString(this.font, Component.translatable("gui.strangematter.info_page.crafting_recipe"), x, y, 0xFFFFFF);
                     y += 15;
-                    
+
                     // Draw recipe grid (3x3 crafting grid)
                     int recipeX = x + 20;
                     int recipeY = y;
                     int slotSize = 18;
-                    
+
                     // Draw 3x3 crafting grid background
                     for (int row = 0; row < 3; row++) {
                         for (int col = 0; col < 3; col++) {
                             int slotX = recipeX + col * slotSize;
                             int slotY = recipeY + row * slotSize;
-                            
+
                             // Draw slot background
                             guiGraphics.fill(slotX, slotY, slotX + slotSize, slotY + slotSize, 0xFF404040);
                             guiGraphics.renderOutline(slotX, slotY, slotSize, slotSize, 0xFF808080);
                         }
                     }
-                    
+
                     // Draw actual recipe items in the crafting grid
                     if (page.recipeName != null) {
                         drawRecipeInGrid(guiGraphics, page.recipeName, recipeX, recipeY, slotSize);
                     }
-                    
+
                     // Draw required materials list - now programmatic!
                     y += 70;
                     guiGraphics.drawString(this.font, Component.translatable("gui.strangematter.info_page.required_materials"), x, y, 0xFFFFAA00);
                     y += 15;
-                    
+
                     // Get unique ingredients from the actual recipe
                     List<String> uniqueIngredients = getUniqueIngredients(page.recipeName);
                     for (String ingredientName : uniqueIngredients) {
@@ -1080,60 +1088,60 @@ public class ResearchNodeInfoScreen extends Screen {
             }
         }
     }
-    
+
     private void renderRealityForgeRecipe(GuiGraphics guiGraphics, int x, int y, InfoPage page) {
         // Draw recipe title
         guiGraphics.drawString(this.font, Component.translatable("gui.strangematter.info_page.reality_forge_recipe"), x, y, 0xFFFFFF);
         y += 15;
-        
+
         if (page.recipeName == null) return;
-        
+
         // Null safety check
         if (this.minecraft == null || this.minecraft.level == null) {
             guiGraphics.drawString(this.font, "Loading...", x, y, 0xFF666666);
             return;
         }
-        
+
         // Get the recipe from the registry
         // If recipeName already has a namespace (contains ':'), use it as-is
         // Otherwise, prepend "strangematter:"
         String fullRecipeName = page.recipeName.contains(":") ? page.recipeName : "strangematter:" + page.recipeName;
         ResourceLocation resultItemId = ResourceLocation.parse(fullRecipeName);
-        net.reversteam.strangematter.recipe.RealityForgeRecipe recipe = 
+        net.reversteam.strangematter.recipe.RealityForgeRecipe recipe =
             net.reversteam.strangematter.recipe.RealityForgeRecipeRegistry.findRecipeByResult(resultItemId, this.minecraft.level);
-        
+
         if (recipe == null) {
             guiGraphics.drawString(this.font, "Recipe not found: " + page.recipeName, x, y, 0xFF666666);
             return;
         }
-        
+
         // Draw the 3x3 crafting grid with tooltips
         renderCraftingGridWithTooltips(guiGraphics, x, y, recipe);
-        
+
         // Draw the result item on the right side with tooltip
         int resultX = x + 100;
         int resultY = y + 20;
         renderResultSlotWithTooltip(guiGraphics, resultX, resultY, recipe.getResultItem(null));
-        
+
         // Draw shards below the crafting grid with tooltips
         renderShardRequirementsWithTooltips(guiGraphics, x, y + 80, recipe);
     }
-    
+
     private void renderCraftingGridWithTooltips(GuiGraphics guiGraphics, int x, int y, net.reversteam.strangematter.recipe.RealityForgeRecipe recipe) {
         int slotSize = 18;
         int gridStartX = x;
         int gridStartY = y;
-        
+
         // Draw 3x3 grid background
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
                 int slotX = gridStartX + col * slotSize;
                 int slotY = gridStartY + row * slotSize;
-                
+
                 // Draw slot background
                 guiGraphics.fill(slotX, slotY, slotX + slotSize, slotY + slotSize, 0xFF404040);
                 guiGraphics.renderOutline(slotX, slotY, slotSize, slotSize, 0xFF808080);
-                
+
                 // Get ingredient for this slot
                 int slotIndex = row * 3 + col;
                 if (slotIndex < recipe.getIngredients().size()) {
@@ -1149,14 +1157,14 @@ public class ResearchNodeInfoScreen extends Screen {
                                 int cycleIndex = (int) ((currentTime / 1000) % matchingStacks.length); // Change every second
                                 net.minecraft.world.item.ItemStack displayStack = matchingStacks[cycleIndex];
                                 guiGraphics.renderItem(displayStack, slotX + 1, slotY + 1);
-                                
+
                                 // Render tooltip if mouse is over this slot
                                 renderItemTooltip(guiGraphics, slotX, slotY, slotSize, displayStack);
                             } else {
                                 // Single item ingredient
                                 net.minecraft.world.item.ItemStack displayStack = matchingStacks[0];
                                 guiGraphics.renderItem(displayStack, slotX + 1, slotY + 1);
-                                
+
                                 // Render tooltip if mouse is over this slot
                                 renderItemTooltip(guiGraphics, slotX, slotY, slotSize, displayStack);
                             }
@@ -1166,31 +1174,31 @@ public class ResearchNodeInfoScreen extends Screen {
             }
         }
     }
-    
+
     private void renderResultSlotWithTooltip(GuiGraphics guiGraphics, int x, int y, net.minecraft.world.item.ItemStack result) {
         int slotSize = 18;
-        
+
         // Draw result slot background
         guiGraphics.fill(x, y, x + slotSize, y + slotSize, 0xFF404040);
         guiGraphics.renderOutline(x, y, slotSize, slotSize, 0xFF808080);
-        
+
         // Draw result item
         if (!result.isEmpty()) {
             guiGraphics.renderItem(result, x + 1, y + 1);
-            
+
             // Render tooltip if mouse is over this slot
             renderItemTooltip(guiGraphics, x, y, slotSize, result);
         }
     }
-    
+
     private void renderShardRequirementsWithTooltips(GuiGraphics guiGraphics, int x, int y, net.reversteam.strangematter.recipe.RealityForgeRecipe recipe) {
         java.util.Map<String, Integer> shardRequirements = recipe.getShardRequirements();
-        
+
         if (shardRequirements.isEmpty()) return;
-        
+
         guiGraphics.drawString(this.font, Component.translatable("gui.strangematter.info_page.required_shards"), x, y, 0xFFFFAA00);
         y += 15;
-        
+
         // Convert shard type names to items
         java.util.Map<String, net.minecraft.world.item.Item> shardTypeToItem = new java.util.HashMap<>();
         shardTypeToItem.put("gravitic", net.reversteam.strangematter.StrangeMatterMod.GRAVITIC_SHARD.get());
@@ -1203,52 +1211,52 @@ public class ResearchNodeInfoScreen extends Screen {
         shardTypeToItem.put("shadow", net.reversteam.strangematter.StrangeMatterMod.SHADE_SHARD.get()); // Alias
         shardTypeToItem.put("insight", net.reversteam.strangematter.StrangeMatterMod.INSIGHT_SHARD.get());
         shardTypeToItem.put("cognitive", net.reversteam.strangematter.StrangeMatterMod.INSIGHT_SHARD.get()); // Alias
-        
+
         // Draw shards in a horizontal line
         int shardX = x;
         int shardY = y;
         int shardSpacing = 20;
         int shardSize = 16;
-        
+
         for (java.util.Map.Entry<String, Integer> entry : shardRequirements.entrySet()) {
             String shardType = entry.getKey();
             int count = entry.getValue();
             net.minecraft.world.item.Item shardItem = shardTypeToItem.get(shardType);
-            
+
             if (shardItem != null) {
                 net.minecraft.world.item.ItemStack shardStack = new net.minecraft.world.item.ItemStack(shardItem);
                 shardStack.setCount(count);
-                
+
                 // Draw shard item
                 guiGraphics.renderItem(shardStack, shardX, shardY);
-                
+
                 // Draw count text next to the shard
                 String countText = count + "x";
                 int textX = shardX + shardSize + 2;
                 int textY = shardY + (shardSize - this.font.lineHeight) / 2;
                 guiGraphics.drawString(this.font, countText, textX, textY, 0xFFFFFF);
-                
+
                 // Render tooltip if mouse is over this shard
                 renderItemTooltip(guiGraphics, shardX, shardY, shardSize, shardStack);
-                
+
                 // Move to next shard position (account for text width)
                 shardX += shardSpacing + this.font.width(countText);
             }
         }
     }
-    
+
     private void renderItemTooltip(GuiGraphics guiGraphics, int x, int y, int size, net.minecraft.world.item.ItemStack stack) {
         if (stack.isEmpty()) return;
-        
+
         // Add this slot to the tooltip slots list
         this.tooltipSlots.add(new TooltipSlot(x, y, size, stack));
     }
-    
+
     // Helper class to store tooltip slot information
     private static class TooltipSlot {
         final int x, y, size;
         final net.minecraft.world.item.ItemStack stack;
-        
+
         TooltipSlot(int x, int y, int size, net.minecraft.world.item.ItemStack stack) {
             this.x = x;
             this.y = y;
@@ -1256,9 +1264,9 @@ public class ResearchNodeInfoScreen extends Screen {
             this.stack = stack;
         }
     }
-    
+
     private java.util.List<TooltipSlot> tooltipSlots = new java.util.ArrayList<>();
-    
+
     private void drawRecipeInGrid(GuiGraphics guiGraphics, String recipeName, int gridX, int gridY, int slotSize) {
         Recipe<?> recipe = findRecipe(recipeName);
 
@@ -1276,7 +1284,7 @@ public class ResearchNodeInfoScreen extends Screen {
             drawEmptyRecipeGrid(guiGraphics, gridX, gridY, slotSize);
         }
     }
-    
+
     /**
      * Finds recipes that produce the specified item.
      * This supports KubeJS-modified recipes and can handle multiple recipes for the same item.
@@ -1285,22 +1293,22 @@ public class ResearchNodeInfoScreen extends Screen {
     private List<CraftingRecipe> findRecipesForItem(String recipeName) {
         List<CraftingRecipe> recipes = new ArrayList<>();
         var recipeManager = this.minecraft.level.getRecipeManager();
-        
+
         // Parse as item ID (recipeName is now expected to be a full item ID like "strangematter:item_name")
         // But keep backwards compatibility for names without namespace
         String fullRecipeName = recipeName.contains(":") ? recipeName : "strangematter:" + recipeName;
         ResourceLocation itemId = ResourceLocation.parse(fullRecipeName);
         var itemRegistry = this.minecraft.level.registryAccess().registry(net.minecraft.core.registries.Registries.ITEM);
-        
+
         if (itemRegistry.isPresent()) {
             var item = itemRegistry.get().get(itemId);
             if (item != null) {
                 // Get all crafting recipes and find ones that produce this item
                 var allCraftingRecipes = recipeManager.getAllRecipesFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING);
-                
+
                 for (var candidateRecipe : allCraftingRecipes) {
-                    if (candidateRecipe instanceof CraftingRecipe) {
-                        CraftingRecipe craftingRecipe = (CraftingRecipe) candidateRecipe;
+                    if (candidateRecipe.value() instanceof CraftingRecipe) {
+                        CraftingRecipe craftingRecipe = (CraftingRecipe) candidateRecipe.value();
                         ItemStack result = craftingRecipe.getResultItem(this.minecraft.level.registryAccess());
                         if (!result.isEmpty() && result.getItem() == item) {
                             recipes.add(craftingRecipe);
@@ -1309,32 +1317,32 @@ public class ResearchNodeInfoScreen extends Screen {
                 }
             }
         }
-        
+
         return recipes;
     }
-    
+
     /**
      * Gets a recipe for the specified item, cycling through multiple recipes if they exist.
      * This supports KubeJS-modified recipes and handles cases where multiple recipes produce the same item.
      */
     private Recipe<?> findRecipe(String recipeName) {
         List<CraftingRecipe> recipes = findRecipesForItem(recipeName);
-        
+
         if (recipes.isEmpty()) {
             return null;
         }
-        
+
         // If there's only one recipe, return it
         if (recipes.size() == 1) {
             return recipes.get(0);
         }
-        
+
         // If there are multiple recipes, cycle through them based on time
         long currentTime = System.currentTimeMillis();
         int cycleIndex = (int) ((currentTime / 3000) % recipes.size()); // Change every 3 seconds
         return recipes.get(cycleIndex);
     }
-    
+
     private void drawCraftingRecipe(GuiGraphics guiGraphics, CraftingRecipe recipe, int gridX, int gridY, int slotSize) {
         // Get the ingredients from the recipe
         List<Ingredient> ingredients = recipe.getIngredients();
@@ -1363,14 +1371,14 @@ public class ResearchNodeInfoScreen extends Screen {
                                 int cycleIndex = (int) ((currentTime / 1000) % stacks.length); // Change every second
                                 ItemStack displayStack = stacks[cycleIndex];
                                 guiGraphics.renderItem(displayStack, slotX + 1, slotY + 1);
-                                
+
                                 // Render tooltip if mouse is over this slot
                                 renderItemTooltip(guiGraphics, slotX, slotY, slotSize, displayStack);
                             } else {
                                 // Single item ingredient
                                 ItemStack displayStack = stacks[0];
                                 guiGraphics.renderItem(displayStack, slotX + 1, slotY + 1);
-                                
+
                                 // Render tooltip if mouse is over this slot
                                 renderItemTooltip(guiGraphics, slotX, slotY, slotSize, displayStack);
                             }
@@ -1391,30 +1399,30 @@ public class ResearchNodeInfoScreen extends Screen {
 
         // Draw result item
         guiGraphics.renderItem(resultStack, resultX + 1, resultY + 1);
-        
+
         // Render tooltip if mouse is over this slot
         renderItemTooltip(guiGraphics, resultX, resultY, slotSize, resultStack);
     }
-    
+
     private void drawEmptyRecipeGrid(GuiGraphics guiGraphics, int gridX, int gridY, int slotSize) {
         // Draw empty 3x3 grid when recipe is not found
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
                 int slotX = gridX + col * slotSize;
                 int slotY = gridY + row * slotSize;
-                
+
                 guiGraphics.fill(slotX, slotY, slotX + slotSize, slotY + slotSize, 0xFF404040);
                 guiGraphics.renderOutline(slotX, slotY, slotSize, slotSize, 0xFF808080);
             }
         }
     }
-    
+
     private List<String> getUniqueIngredients(String recipeName) {
         List<String> uniqueIngredients = new ArrayList<>();
-        
+
         // Get the recipe (supports both recipe ID lookup and item-based lookup for KubeJS compatibility)
         Recipe<?> recipe = findRecipe(recipeName);
-        
+
         if (recipe instanceof CraftingRecipe craftingRecipe) {
             List<Ingredient> ingredients = craftingRecipe.getIngredients();
             for (Ingredient ingredient : ingredients) {
@@ -1426,13 +1434,13 @@ public class ResearchNodeInfoScreen extends Screen {
                             // Check if this looks like the anomaly_shards tag
                             boolean isAnomalyShards = false;
                             for (ItemStack stack : stacks) {
-                                String itemId = net.minecraftforge.registries.ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
+                                String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
                                 if (itemId.contains("shard")) {
                                     isAnomalyShards = true;
                                     break;
                                 }
                             }
-                            
+
                             if (isAnomalyShards) {
                                 // Add a descriptive name for the anomaly shards tag
                                 if (!uniqueIngredients.contains("Any Anomaly Shard")) {
@@ -1450,7 +1458,7 @@ public class ResearchNodeInfoScreen extends Screen {
                             // Single item ingredient - get its localized name
                             ItemStack stack = stacks[0];
                             String localizedName = stack.getHoverName().getString();
-                            
+
                             // Only add if not already in the list
                             if (!uniqueIngredients.contains(localizedName)) {
                                 uniqueIngredients.add(localizedName);
@@ -1460,33 +1468,33 @@ public class ResearchNodeInfoScreen extends Screen {
                 }
             }
         }
-        
+
         return uniqueIngredients;
     }
-    
+
     private void drawTextureInSlot(GuiGraphics guiGraphics, ResourceLocation texture, int x, int y) {
         // Simple texture drawing - no unnecessary mapping functions
         RenderSystem.setShaderTexture(0, texture);
         guiGraphics.blit(texture, x + 1, y + 1, 0, 0, 16, 16, 16, 16);
     }
-    
+
     private String getItemDisplayName(String itemId) {
         // Use proper localization keys that will be resolved by Minecraft's localization system
         return "item." + itemId.replace(":", ".");
     }
-    
+
     private void renderScreenshots(GuiGraphics guiGraphics, int x, int y, int width) {
         if (currentPage < pages.size()) {
             InfoPage page = pages.get(currentPage);
-            
+
             if (page.hasScreenshots && page.screenshotPath != null) {
                 // Draw screenshot
                 int screenshotWidth = 120;
                 int screenshotHeight = 80;
-                
+
                 // Draw screenshot background
                 guiGraphics.fill(x, y, x + screenshotWidth, y + screenshotHeight, 0xFF202020);
-                
+
                 // Render the actual screenshot texture
                 try {
                     ResourceLocation screenshotTexture = ResourceLocation.parse(page.screenshotPath);
@@ -1498,38 +1506,38 @@ public class ResearchNodeInfoScreen extends Screen {
                     guiGraphics.drawCenteredString(this.font, "Screenshot", x + screenshotWidth / 2, y + screenshotHeight / 2 - 5, 0x888888);
                     guiGraphics.drawCenteredString(this.font, "Not Found", x + screenshotWidth / 2, y + screenshotHeight / 2 + 5, 0x888888);
                 }
-                
+
                 // Draw outline on top of the screenshot
                 guiGraphics.renderOutline(x, y, screenshotWidth, screenshotHeight, 0xFF555555);
-                
+
                 // Draw caption
                 y += screenshotHeight + 10;
                 guiGraphics.drawString(this.font, getScreenshotCaption(page.screenshotPath), x, y, 0xAAAAAA);
             }
         }
     }
-    
+
     private String getScreenshotCaption(String screenshotPath) {
         if (screenshotPath == null) {
             return Component.translatable("gui.strangematter.info_page.screenshot.default").getString();
         }
-        
+
         // Extract filename from path and create translation key
         String filename = screenshotPath.substring(screenshotPath.lastIndexOf('/') + 1);
         String filenameWithoutExt = filename.replace(".png", "");
-        
+
         // Create translation key using the filename
         String translationKey = "gui.strangematter.info_page.screenshot." + filenameWithoutExt;
         Component caption = Component.translatable(translationKey);
-        
+
         // If translation doesn't exist, return the key (fallback)
         if (caption.getString().equals(translationKey)) {
             return Component.translatable("gui.strangematter.info_page.screenshot.fallback", filenameWithoutExt.replace("_", " ")).getString();
         }
-        
+
         return caption.getString();
     }
-    
+
     // Helper class to store page information
     private static class InfoPage {
         String title;

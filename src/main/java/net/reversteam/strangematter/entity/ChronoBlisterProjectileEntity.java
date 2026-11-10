@@ -18,30 +18,30 @@ import net.reversteam.strangematter.StrangeMatterMod;
 import org.jetbrains.annotations.NotNull;
 
 public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
-    
+
     private static final EntityDataAccessor<Float> CHARGE_PROGRESS = SynchedEntityData.defineId(ChronoBlisterProjectileEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> FIRED = SynchedEntityData.defineId(ChronoBlisterProjectileEntity.class, EntityDataSerializers.BOOLEAN);
-    
+
     private float chargeProgress = 0.0f;
     private boolean fired = false;
-    
+
     public ChronoBlisterProjectileEntity(EntityType<? extends ChronoBlisterProjectileEntity> entityType, Level level) {
         super(entityType, level);
     }
-    
+
     public ChronoBlisterProjectileEntity(EntityType<? extends ChronoBlisterProjectileEntity> entityType, LivingEntity shooter, Level level) {
         super(entityType, shooter, level);
     }
-    
+
     public void setChargeProgress(float progress) {
         this.chargeProgress = Math.max(0.0f, Math.min(1.0f, progress));
         this.entityData.set(CHARGE_PROGRESS, this.chargeProgress);
     }
-    
+
     public float getChargeProgress() {
         return this.entityData.get(CHARGE_PROGRESS);
     }
-    
+
     public void setFired(boolean fired) {
         this.fired = fired;
         this.entityData.set(FIRED, fired);
@@ -49,19 +49,19 @@ public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
             this.setNoGravity(false); // Enable gravity when fired
         }
     }
-    
+
     public boolean isFired() {
         return this.entityData.get(FIRED);
     }
-    
+
     @Override
     public void tick() {
         super.tick();
-        
+
         // Update charge progress from synched data
         this.chargeProgress = this.entityData.get(CHARGE_PROGRESS);
         this.fired = this.entityData.get(FIRED);
-        
+
         // If not fired yet, follow the player's look direction
         if (!fired && this.getOwner() instanceof LivingEntity owner) {
             Vec3 lookDirection = owner.getLookAngle();
@@ -72,16 +72,16 @@ public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
             this.setDeltaMovement(Vec3.ZERO); // Don't move while charging
         }
     }
-    
+
     @Override
     protected void onHit(HitResult result) {
         // Only trigger hit if the projectile has been fired
         if (!this.fired) {
             return;
         }
-        
+
         BlockPos hitPos;
-        
+
         if (result.getType() == HitResult.Type.BLOCK) {
             BlockHitResult blockResult = (BlockHitResult) result;
             hitPos = blockResult.getBlockPos().relative(blockResult.getDirection());
@@ -92,27 +92,27 @@ public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
             this.discard();
             return;
         }
-        
+
         // Spawn blob of time dilation blocks
         spawnTimeDilationBlob(hitPos);
-        
+
         // Remove the projectile
         this.discard();
     }
-    
+
     private void spawnTimeDilationBlob(BlockPos centerPos) {
         if (this.level().isClientSide) return;
-        
+
         // Create a solid blob formation - fill a roughly spherical/rounded blob
         int radius = 2; // 2 block radius
-        
+
         // Spawn blocks in a solid blob pattern
         for (int x = -radius; x <= radius; x++) {
             for (int y = -radius; y <= radius; y++) {
                 for (int z = -radius; z <= radius; z++) {
                     // Calculate distance from center
                     double distance = Math.sqrt(x * x + y * y + z * z);
-                    
+
                     // Create a solid blob - fill most positions within radius
                     // Use a slightly irregular shape for more natural blob appearance
                     if (distance <= radius + 0.5) {
@@ -121,7 +121,7 @@ public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
                         if (distance <= radius - 0.3 || this.level().getRandom().nextDouble() < 0.7) {
                             BlockPos spawnPos = centerPos.offset(x, y, z);
                             BlockState currentState = this.level().getBlockState(spawnPos);
-                            
+
                             // Only spawn in air or replaceable blocks
                             if (currentState.isAir() || currentState.canBeReplaced()) {
                                 this.level().setBlock(spawnPos, StrangeMatterMod.TIME_DILATION_BLOCK.get().defaultBlockState(), 3);
@@ -132,20 +132,20 @@ public class ChronoBlisterProjectileEntity extends ThrowableProjectile {
             }
         }
     }
-    
+
     @Override
-    protected void defineSynchedData() {
-        this.entityData.define(CHARGE_PROGRESS, 0.0f);
-        this.entityData.define(FIRED, false);
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        builder.define(CHARGE_PROGRESS, 0.0f);
+        builder.define(FIRED, false);
     }
-    
+
     @Override
     protected void addAdditionalSaveData(@NotNull CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putFloat("ChargeProgress", this.chargeProgress);
         tag.putBoolean("Fired", this.fired);
     }
-    
+
     @Override
     protected void readAdditionalSaveData(@NotNull CompoundTag tag) {
         super.readAdditionalSaveData(tag);

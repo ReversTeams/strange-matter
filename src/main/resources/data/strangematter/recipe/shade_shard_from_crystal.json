@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "strangematter:shade_shard_crystal"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "strangematter:shade_shard"
+  }
+}

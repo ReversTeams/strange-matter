@@ -24,10 +24,10 @@ import net.reversteam.strangematter.StrangeMatterMod;
 import net.minecraft.network.chat.Component;
 
 public class StasisProjectorBlock extends Block implements EntityBlock {
-    
+
     // Small block shape to match the model - 6x2x6 pixels
     private static final VoxelShape SHAPE = Block.box(5.0D, 0.0D, 5.0D, 11.0D, 2.0D, 11.0D);
-    
+
     public StasisProjectorBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.METAL)
@@ -39,54 +39,53 @@ public class StasisProjectorBlock extends Block implements EntityBlock {
             .isSuffocating((state, level, pos) -> false)
         );
     }
-    
+
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
-    
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+
+    private InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof StasisProjectorBlockEntity stasisProjector) {
                 ItemStack heldItem = player.getItemInHand(hand);
-                
+
                 // Check if player is holding a dye
                 if (heldItem.getItem() instanceof DyeItem dyeItem) {
                     // Get the dye color and convert to RGB
                     int dyeColor = dyeItem.getDyeColor().getFireworkColor();
                     stasisProjector.setFieldColor(dyeColor);
-                    
+
                     // Consume the dye
                     if (!player.getAbilities().instabuild) {
                         heldItem.shrink(1);
                     }
-                    
+
                     // Play sound and show message
-                    level.playSound(null, pos, net.minecraft.sounds.SoundEvents.DYE_USE, 
+                    level.playSound(null, pos, net.minecraft.sounds.SoundEvents.DYE_USE,
                         net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
-                    
+
                     player.displayClientMessage(
-                        Component.translatable("message.strangematter.stasis_projector.color_changed", 
+                        Component.translatable("message.strangematter.stasis_projector.color_changed",
                             dyeItem.getDyeColor().getName()),
                         true
                     );
-                    
+
                     return InteractionResult.SUCCESS;
                 }
-                
+
                 // Toggle on/off when shift right-clicking
                 if (player.isShiftKeyDown()) {
                     stasisProjector.togglePower();
                     boolean isPowered = stasisProjector.isPowered();
-                    
+
                     // Play appropriate sound
-                    level.playSound(null, pos, 
-                        isPowered ? net.reversteam.strangematter.sound.StrangeMatterSounds.STASIS_PROJECTOR_ON.get() 
+                    level.playSound(null, pos,
+                        isPowered ? net.reversteam.strangematter.sound.StrangeMatterSounds.STASIS_PROJECTOR_ON.get()
                                   : net.reversteam.strangematter.sound.StrangeMatterSounds.STASIS_PROJECTOR_OFF.get(),
                         net.minecraft.sounds.SoundSource.BLOCKS, 0.8f, 1.0f);
-                    
+
                     player.displayClientMessage(
                         Component.translatable(isPowered ? "message.strangematter.stasis_projector.on" : "message.strangematter.stasis_projector.off"),
                         true
@@ -97,22 +96,22 @@ public class StasisProjectorBlock extends Block implements EntityBlock {
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-    
+
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new StasisProjectorBlockEntity(pos, state);
     }
-    
+
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType) {
-        return blockEntityType == StrangeMatterMod.STASIS_PROJECTOR_BLOCK_ENTITY.get() ? 
+        return blockEntityType == StrangeMatterMod.STASIS_PROJECTOR_BLOCK_ENTITY.get() ?
             (level1, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof StasisProjectorBlockEntity stasisProjector) {
                     StasisProjectorBlockEntity.tick(level1, pos, state1, stasisProjector);
                 }
             } : null;
     }
-    
+
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
@@ -123,5 +122,16 @@ public class StasisProjectorBlock extends Block implements EntityBlock {
             super.onRemove(state, level, pos, newState, isMoving);
         }
     }
-}
 
+    @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch(interact(state,level,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME, CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            default -> net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+}

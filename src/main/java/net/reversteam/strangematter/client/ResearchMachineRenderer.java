@@ -11,12 +11,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.reversteam.strangematter.StrangeMatterMod;
 
 public class ResearchMachineRenderer implements BlockEntityRenderer<ResearchMachineBlockEntity> {
-    
-    private static final ResourceLocation MACHINE_OBJ = new ResourceLocation(StrangeMatterMod.MODID, "models/block/research_machine.obj");
-    private static final ResourceLocation MACHINE_TEXTURE = new ResourceLocation(StrangeMatterMod.MODID, "textures/block/research_machine.png");
-    
+
+    private static final ResourceLocation MACHINE_OBJ = ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "models/block/research_machine.obj");
+    private static final ResourceLocation MACHINE_TEXTURE = ResourceLocation.fromNamespaceAndPath(StrangeMatterMod.MODID, "textures/block/research_machine.png");
+
     private OBJModel machineModel;
-    
+
     public ResearchMachineRenderer(BlockEntityRendererProvider.Context context) {
         // Load the OBJ model with flipped UVs for proper texture mapping
         try {
@@ -28,18 +28,18 @@ public class ResearchMachineRenderer implements BlockEntityRenderer<ResearchMach
             this.machineModel = null;
         }
     }
-    
+
     @Override
     public void render(ResearchMachineBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         if (machineModel == null) {
             return; // Don't render if model failed to load
         }
-        
+
         poseStack.pushPose();
-        
+
         // Center the model on the block (OBJ models are typically centered around origin)
         poseStack.translate(0.5, 0.0, 0.5);
-        
+
         // Rotate the model based on the block's facing direction
         net.minecraft.core.Direction facing = blockEntity.getBlockState().getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING);
         switch (facing) {
@@ -58,13 +58,13 @@ public class ResearchMachineRenderer implements BlockEntityRenderer<ResearchMach
             default:
                 break;
         }
-        
+
         // Scale the model to fit within a block
         poseStack.scale(1.0f, 1.0f, 1.0f);
-        
+
         // Render the OBJ model with default texture as fallback
         machineModel.render(poseStack, bufferSource, MACHINE_TEXTURE, packedLight, 1.0f, 1.0f, 1.0f, 1.0f);
-        
+
         poseStack.popPose();
     }
 }

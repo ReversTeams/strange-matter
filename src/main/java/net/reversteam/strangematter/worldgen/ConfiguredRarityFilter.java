@@ -20,18 +20,18 @@ import java.util.stream.Stream;
  * This allows anomaly spawn rates to be adjusted via configuration.
  */
 public class ConfiguredRarityFilter extends PlacementModifier {
-    public static final Codec<ConfiguredRarityFilter> CODEC = RecordCodecBuilder.create(
+    public static final com.mojang.serialization.MapCodec<ConfiguredRarityFilter> CODEC = RecordCodecBuilder.mapCodec(
         instance -> instance.group(
             Codec.STRING.fieldOf("feature_type").forGetter(filter -> filter.featureType)
         ).apply(instance, ConfiguredRarityFilter::new)
     );
-    
+
     private final String featureType;
-    
+
     public ConfiguredRarityFilter(String featureType) {
         this.featureType = featureType;
     }
-    
+
     @Override
     public Stream<BlockPos> getPositions(@Nonnull PlacementContext context, @Nonnull RandomSource random, @Nonnull BlockPos pos) {
         // If feature is disabled, return empty stream (no spawns)
@@ -59,12 +59,12 @@ public class ConfiguredRarityFilter extends PlacementModifier {
 
         return Stream.empty();
     }
-    
+
     @Override
     public PlacementModifierType<?> type() {
         return StrangeMatterMod.CONFIGURED_RARITY_FILTER.get();
     }
-    
+
     /**
      * Get the rarity value from config based on feature type
      */
@@ -83,7 +83,7 @@ public class ConfiguredRarityFilter extends PlacementModifier {
             return 500; // Safe default if config isn't loaded yet
         }
     }
-    
+
     /**
      * Check if the feature is enabled in config
      */
@@ -102,7 +102,7 @@ public class ConfiguredRarityFilter extends PlacementModifier {
             return true; // Safe default if config isn't loaded yet
         }
     }
-    
+
     private String getDimensionId(PlacementContext context) {
         try {
             return context.getLevel().getLevel().dimension().location().toString();
@@ -164,7 +164,7 @@ public class ConfiguredRarityFilter extends PlacementModifier {
             return Collections.emptyMap();
         }
     }
-    
+
     /**
      * Get the allowed dimensions list from config based on feature type
      */

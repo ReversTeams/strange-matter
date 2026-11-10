@@ -57,7 +57,7 @@ public class ResonantConduitRenderer implements BlockEntityRenderer<ResonantCond
 
         // Render connection tubes for each connected direction
         for (Direction direction : connectedDirections) {
-            renderConnectionTube(poseStack, buffer, direction, 
+            renderConnectionTube(poseStack, buffer, direction,
                     shouldRenderJoint, combinedLight, combinedOverlay);
         }
     }
@@ -121,7 +121,7 @@ public class ResonantConduitRenderer implements BlockEntityRenderer<ResonantCond
     /**
      * Render a connection tube extending in the given direction with proper UV mapping
      */
-    private void renderConnectionTube(PoseStack poseStack, VertexConsumer buffer, Direction direction, 
+    private void renderConnectionTube(PoseStack poseStack, VertexConsumer buffer, Direction direction,
                                      boolean hasJoint, int combinedLight, int combinedOverlay) {
         poseStack.pushPose();
 
@@ -197,7 +197,7 @@ public class ResonantConduitRenderer implements BlockEntityRenderer<ResonantCond
         float maxU = uStart + uSize;
         float minV = vStart;
         float maxV = vStart + vSize;
-        
+
         // Top and bottom face UVs for cardinal direction tubes (5,0) size 5x16
         float topBottomMinU = 0.0f / 32.0f;
         float topBottomMaxU = 5.0f / 32.0f;
@@ -260,13 +260,13 @@ public class ResonantConduitRenderer implements BlockEntityRenderer<ResonantCond
      */
     private void addVertex(VertexConsumer buffer, PoseStack poseStack, float x, float y, float z,
                           float u, float v, int combinedLight, int combinedOverlay) {
-        buffer.vertex(poseStack.last().pose(), x, y, z)
-                .color(1.0f, 1.0f, 1.0f, 1.0f)
-                .uv(u, v)
-                .overlayCoords(combinedOverlay)
-                .uv2(combinedLight)
-                .normal(poseStack.last().normal(), 0, 1, 0)
-                .endVertex();
+        buffer.addVertex(poseStack.last().pose(), x, y, z)
+                .setColor(1.0f, 1.0f, 1.0f, 1.0f)
+                .setUv(u, v)
+                .setOverlay(combinedOverlay)
+                .setLight(combinedLight)
+                .setNormal(poseStack.last(), 0, 1, 0)
+                ;
     }
 
     @Override

@@ -13,7 +13,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 public class ResoniteBlock extends Block {
-    
+
     public ResoniteBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.COLOR_PURPLE)
@@ -22,15 +22,15 @@ public class ResoniteBlock extends Block {
             .requiresCorrectToolForDrops()
         );
     }
-    
+
     @Override
     public java.util.List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
         java.util.List<ItemStack> drops = new java.util.ArrayList<>();
-        
+
         // Check if the tool has silk touch
         if (builder.getOptionalParameter(LootContextParams.THIS_ENTITY) instanceof Player player) {
             ItemStack tool = player.getMainHandItem();
-            if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool) > 0) {
+            if (EnchantmentHelper.getItemEnchantmentLevel(builder.getLevel().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), tool) > 0) {
                 // Drop the block itself with silk touch
                 drops.add(new ItemStack(this));
             } else {
@@ -41,7 +41,7 @@ public class ResoniteBlock extends Block {
             // Default behavior: drop the block itself
             drops.add(new ItemStack(this));
         }
-        
+
         return drops;
     }
 }

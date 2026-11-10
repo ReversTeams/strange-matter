@@ -17,36 +17,36 @@ import java.util.stream.Stream;
  * This allows ore vein counts to be adjusted via configuration.
  */
 public class ConfiguredCountPlacement extends PlacementModifier {
-    public static final Codec<ConfiguredCountPlacement> CODEC = RecordCodecBuilder.create(
+    public static final com.mojang.serialization.MapCodec<ConfiguredCountPlacement> CODEC = RecordCodecBuilder.mapCodec(
         instance -> instance.group(
             Codec.STRING.fieldOf("feature_type").forGetter(filter -> filter.featureType)
         ).apply(instance, ConfiguredCountPlacement::new)
     );
-    
+
     private final String featureType;
-    
+
     public ConfiguredCountPlacement(String featureType) {
         this.featureType = featureType;
     }
-    
+
     @Override
     public Stream<BlockPos> getPositions(PlacementContext context, RandomSource random, BlockPos pos) {
         int count = getCountFromConfig();
-        
+
         // If feature is disabled, return empty stream
         if (!isFeatureEnabled()) {
             return Stream.empty();
         }
-        
+
         // Generate 'count' number of positions
         return Stream.generate(() -> pos).limit(count);
     }
-    
+
     @Override
     public PlacementModifierType<?> type() {
         return StrangeMatterMod.CONFIGURED_COUNT_PLACEMENT.get();
     }
-    
+
     /**
      * Get the count value from config based on feature type
      */
@@ -60,7 +60,7 @@ public class ConfiguredCountPlacement extends PlacementModifier {
             return 3; // Safe default if config isn't loaded yet
         }
     }
-    
+
     /**
      * Check if the feature is enabled in config
      */

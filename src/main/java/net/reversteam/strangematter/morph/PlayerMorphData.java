@@ -14,14 +14,14 @@ import java.util.UUID;
 public class PlayerMorphData {
     private static final Map<UUID, String> morphedEntities = new HashMap<>();
     private static final Map<UUID, UUID> morphedPlayerUUIDs = new HashMap<>(); // For player skins
-    
+
     /**
      * Set a player's morph to a specific entity type
      */
     public static void setMorph(UUID playerUUID, String entityTypeId) {
         setMorph(playerUUID, entityTypeId, null);
     }
-    
+
     /**
      * Set a player's morph to a specific entity type with optional player UUID for skin
      */
@@ -33,7 +33,7 @@ public class PlayerMorphData {
             morphedPlayerUUIDs.remove(playerUUID);
         }
     }
-    
+
     /**
      * Clear a player's morph
      */
@@ -41,43 +41,43 @@ public class PlayerMorphData {
         morphedEntities.remove(playerUUID);
         morphedPlayerUUIDs.remove(playerUUID);
     }
-    
+
     /**
      * Get the target player UUID if morphed into a player
      */
     public static UUID getMorphedPlayerUUID(UUID playerUUID) {
         return morphedPlayerUUIDs.get(playerUUID);
     }
-    
+
     /**
      * Check if a player is morphed
      */
     public static boolean isMorphed(UUID playerUUID) {
         return morphedEntities.containsKey(playerUUID);
     }
-    
+
     /**
      * Get the entity type ID a player is morphed into
      */
     public static String getMorphEntityType(UUID playerUUID) {
         return morphedEntities.get(playerUUID);
     }
-    
+
     /**
      * Get the EntityType a player is morphed into
      */
     public static EntityType<?> getMorphEntityTypeObj(UUID playerUUID) {
         String entityTypeId = morphedEntities.get(playerUUID);
         if (entityTypeId == null) return null;
-        
+
         try {
             ResourceLocation resourceLocation = ResourceLocation.parse(entityTypeId);
-            return net.minecraftforge.registries.ForgeRegistries.ENTITY_TYPES.getValue(resourceLocation);
+            return net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.get(resourceLocation);
         } catch (Exception e) {
             return null;
         }
     }
-    
+
     /**
      * Save morph data to NBT
      */
@@ -89,7 +89,7 @@ public class PlayerMorphData {
         tag.put("morphs", morphsTag);
         return tag;
     }
-    
+
     /**
      * Load morph data from NBT
      */

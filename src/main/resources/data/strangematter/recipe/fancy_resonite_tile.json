@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TT",
+    "TT"
+  ],
+  "key": {
+    "T": {
+      "item": "strangematter:resonite_tile"
+    }
+  },
+  "result": {
+    "count": 4,
+    "id": "strangematter:fancy_resonite_tile"
+  }
+}

@@ -3,19 +3,19 @@ package net.reversteam.strangematter.event;
 import net.reversteam.strangematter.morph.PlayerMorphData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 
 import java.util.UUID;
 
 /**
  * Handles server-side player morph cleanup and syncing
  */
-@Mod.EventBusSubscriber(modid = "strangematter")
+@net.neoforged.fml.common.EventBusSubscriber(modid = "strangematter")
 public class PlayerMorphEventHandler {
-    
+
     /**
      * Sync all morphs to a player when they join
      */
@@ -25,14 +25,14 @@ public class PlayerMorphEventHandler {
         if (event.getLevel().isClientSide()) {
             return;
         }
-        
+
         // Only handle players
         if (!(event.getEntity() instanceof ServerPlayer joiningPlayer)) {
             return;
         }
-        
+
         System.out.println("DEBUG: Player joined server, syncing morphs to: " + joiningPlayer.getName().getString());
-        
+
         // Sync all existing morphs to the joining player
         for (Player otherPlayer : event.getLevel().players()) {
             String morphType = PlayerMorphData.getMorphEntityType(otherPlayer.getUUID());
@@ -40,13 +40,13 @@ public class PlayerMorphEventHandler {
                 UUID targetPlayerUUID = PlayerMorphData.getMorphedPlayerUUID(otherPlayer.getUUID());
                 System.out.println("DEBUG: Syncing morph " + morphType + " for player " + otherPlayer.getName().getString() + " to joining player");
                 net.reversteam.strangematter.network.NetworkHandler.INSTANCE.send(
-                    net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> joiningPlayer),
+                    net.reversteam.strangematter.network.PacketTargets.PLAYER.with(() -> joiningPlayer),
                     new net.reversteam.strangematter.network.PlayerMorphSyncPacket(otherPlayer.getUUID(), morphType, targetPlayerUUID, false)
                 );
             }
         }
     }
-    
+
     /**
      * Clear morph data when player logs out
      */

@@ -12,7 +12,7 @@ import net.reversteam.strangematter.StrangeMatterMod;
 import java.util.*;
 
 public class ResearchMachineBlockEntity extends BlockEntity {
-    
+
     public enum MachineState {
         IDLE,           // No research note inserted
         READY,          // Research note inserted, ready to begin
@@ -20,7 +20,7 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         COMPLETED,      // Research completed successfully
         FAILED          // Research failed due to anomaly
     }
-    
+
     private MachineState currentState = MachineState.IDLE;
     private String currentResearchId = "";
     private Set<ResearchType> activeResearchTypes = new HashSet<>();
@@ -29,11 +29,11 @@ public class ResearchMachineBlockEntity extends BlockEntity {
     private java.util.UUID playerId = null; // Track who inserted the research note
     private java.util.UUID currentPlayerId = null; // Track who is currently using the machine
     private Map<ResearchType, Map<String, Object>> minigameStates = new HashMap<>(); // Save minigame states
-    
+
     public ResearchMachineBlockEntity(BlockPos pos, BlockState state) {
         super(StrangeMatterMod.RESEARCH_MACHINE_BLOCK_ENTITY.get(), pos, state);
     }
-    
+
     /**
      * Insert a research note into the machine
      */
@@ -41,12 +41,12 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         if (currentState != MachineState.IDLE) {
             return false; // Machine already has a research note
         }
-        
+
         if (net.reversteam.strangematter.item.ResearchNoteItem.isValidResearchNote(researchNote)) {
             currentResearchId = net.reversteam.strangematter.item.ResearchNoteItem.getResearchId(researchNote);
             activeResearchTypes = net.reversteam.strangematter.item.ResearchNoteItem.getResearchTypes(researchNote);
             playerId = player.getUUID();
-            
+
             // Check if minigames are disabled in config
             if (!net.reversteam.strangematter.Config.enableMinigames) {
                 // Instant unlock - skip minigames entirely
@@ -56,28 +56,28 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                 }
                 return true;
             }
-            
+
             // Normal mode - require minigames
             currentState = MachineState.READY;
             instabilityLevel = 0.5f; // Start at halfway
             researchTicks = 0;
             setChanged();
-            
+
             // Play insert sound
             if (level != null) {
-                level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_NOTE_INSERT.get(), 
+                level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_NOTE_INSERT.get(),
                     net.minecraft.sounds.SoundSource.BLOCKS, 0.8f, 1.0f);
             }
-            
+
             // Send packet to sync with client
             sendSyncPacket();
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Begin the research process
      */
@@ -88,8 +88,8 @@ public class ResearchMachineBlockEntity extends BlockEntity {
             setChanged();
         }
     }
-    
-    
+
+
     /**
      * Handle research completion - unlock research and reset machine
      */
@@ -98,24 +98,24 @@ public class ResearchMachineBlockEntity extends BlockEntity {
             net.minecraft.world.entity.player.Player player = level.getPlayerByUUID(playerId);
             if (player != null) {
                 // Check if research is already unlocked
-                net.reversteam.strangematter.research.ResearchData researchData = 
+                net.reversteam.strangematter.research.ResearchData researchData =
                     net.reversteam.strangematter.research.ResearchData.get(player);
                 boolean alreadyUnlocked = researchData.hasUnlockedResearch(currentResearchId);
-                
+
                 if (alreadyUnlocked) {
                     // Send message that research was already unlocked (for testing purposes)
                     player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
-                        "block.strangematter.research_machine.research_already_unlocked", 
+                        "block.strangematter.research_machine.research_already_unlocked",
                         net.reversteam.strangematter.research.ResearchNodeRegistry.getNode(currentResearchId).getDisplayName()));
-                    
+
                     // Still play success sound and particles for consistency
-                    level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_SUCCESS.get(), 
+                    level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_SUCCESS.get(),
                         net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.0f);
                 } else {
                     // Unlock the research for the player
                     researchData.unlockResearch(currentResearchId);
                     researchData.syncToClient((net.minecraft.server.level.ServerPlayer) player);
-                    
+
                     // Trigger advancement for each research category used in this research
                     net.reversteam.strangematter.research.ResearchNode researchNode = net.reversteam.strangematter.research.ResearchNodeRegistry.getNode(currentResearchId);
                     if (researchNode != null && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
@@ -123,37 +123,37 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                             StrangeMatterMod.COMPLETE_RESEARCH_CATEGORY_TRIGGER.trigger(serverPlayer, typeId);
                         }
                     }
-                    
+
                     // Send success message
                     player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
-                        "block.strangematter.research_machine.research_completed_success", 
+                        "block.strangematter.research_machine.research_completed_success",
                         net.reversteam.strangematter.research.ResearchNodeRegistry.getNode(currentResearchId).getDisplayName()));
-                    
+
                     // Play success sound and particles at the machine location
-                    level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_SUCCESS.get(), 
+                    level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_SUCCESS.get(),
                         net.minecraft.sounds.SoundSource.BLOCKS, 0.6f, 1.0f);
                 }
-                
+
                 // Spawn success particles
                 for (int i = 0; i < 20; i++) {
                     double offsetX = (level.getRandom().nextDouble() - 0.5) * 2.0;
                     double offsetY = level.getRandom().nextDouble() * 1.5;
                     double offsetZ = (level.getRandom().nextDouble() - 0.5) * 2.0;
-                    
-                    level.addParticle(net.minecraft.core.particles.ParticleTypes.ENCHANT, 
-                        worldPosition.getX() + 0.5 + offsetX, 
-                        worldPosition.getY() + 0.5 + offsetY, 
-                        worldPosition.getZ() + 0.5 + offsetZ, 
+
+                    level.addParticle(net.minecraft.core.particles.ParticleTypes.ENCHANT,
+                        worldPosition.getX() + 0.5 + offsetX,
+                        worldPosition.getY() + 0.5 + offsetY,
+                        worldPosition.getZ() + 0.5 + offsetZ,
                         0.0, 0.1, 0.0);
                 }
             }
         }
-        
+
         // Set state to completed and send immediate sync packet
         currentState = MachineState.COMPLETED;
         setChanged();
         sendSyncPacket();
-        
+
         // Reset machine after a delay (5 seconds)
         level.getServer().tell(new net.minecraft.server.TickTask(100, () -> {
             if (!level.isClientSide) {
@@ -162,7 +162,7 @@ public class ResearchMachineBlockEntity extends BlockEntity {
             }
         }));
     }
-    
+
     /**
      * Creates a research note ItemStack from the current stored research data
      */
@@ -170,14 +170,14 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         if (currentResearchId.isEmpty() || activeResearchTypes.isEmpty()) {
             return ItemStack.EMPTY;
         }
-        
+
         Map<String, Integer> researchCosts = new HashMap<>();
         for (ResearchType type : activeResearchTypes) {
             researchCosts.put(type.getName(), 1);
         }
         return net.reversteam.strangematter.item.ResearchNoteItem.createResearchNote(researchCosts, currentResearchId);
     }
-    
+
     /**
      * Drops the current research note at the machine's position
      */
@@ -185,22 +185,22 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         if (level == null || level.isClientSide) {
             return;
         }
-        
+
         ItemStack researchNote = createResearchNoteFromStoredData();
         if (!researchNote.isEmpty()) {
             // Drop the research note at the machine's position
             net.minecraft.world.entity.item.ItemEntity itemEntity = new net.minecraft.world.entity.item.ItemEntity(
-                level, 
-                worldPosition.getX() + 0.5, 
-                worldPosition.getY() + 1.0, 
-                worldPosition.getZ() + 0.5, 
+                level,
+                worldPosition.getX() + 0.5,
+                worldPosition.getY() + 1.0,
+                worldPosition.getZ() + 0.5,
                 researchNote
             );
             itemEntity.setDefaultPickUpDelay();
             level.addFreshEntity(itemEntity);
         }
     }
-    
+
     /**
      * Handle research failure - trigger anomalous event and reset machine
      */
@@ -213,21 +213,21 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                     "block.strangematter.research_machine.research_failed"));
             }
         }
-        
+
         // Play failure sound
         if (level != null) {
-            level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_FAILURE.get(), 
+            level.playSound(null, worldPosition, StrangeMatterSounds.RESEARCH_MACHINE_FAILURE.get(),
                 net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 1.0f);
         }
-        
+
         // Drop the research note before clearing
         dropResearchNote();
-        
+
         // Set state to failed and send immediate sync packet
         currentState = MachineState.FAILED;
         setChanged();
         sendSyncPacket();
-        
+
         // Reset machine after a delay (3 seconds)
         level.getServer().tell(new net.minecraft.server.TickTask(60, () -> {
             if (!level.isClientSide) {
@@ -236,7 +236,7 @@ public class ResearchMachineBlockEntity extends BlockEntity {
             }
         }));
     }
-    
+
     /**
      * Clear the current research and return to idle state
      */
@@ -249,44 +249,44 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         playerId = null;
         setChanged();
     }
-    
+
     // Getters
-    
+
     public MachineState getCurrentState() {
         return currentState;
     }
-    
+
     public String getCurrentResearchId() {
         return currentResearchId;
     }
-    
+
     public Set<ResearchType> getActiveResearchTypes() {
         return activeResearchTypes;
     }
-    
+
     public float getInstabilityLevel() {
         return instabilityLevel;
     }
-    
+
     public int getResearchTicks() {
         return researchTicks;
     }
-    
+
     public boolean canInsertResearchNote() {
         return currentState == MachineState.IDLE;
     }
-    
+
     public boolean canBeginResearch() {
         return currentState == MachineState.READY;
     }
-    
+
     /**
      * Set the client-side instability level (for client-side updates)
      */
     public void setClientInstabilityLevel(float instability) {
         this.instabilityLevel = instability;
     }
-    
+
     /**
      * Deactivate all minigames (for both client and server)
      */
@@ -295,63 +295,63 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         // The actual minigame deactivation happens in the GUI on client side
         // This method is here for consistency and potential future use
     }
-    
+
     /**
      * Send sync packet to clients
      */
     public void sendSyncPacket() {
         if (!level.isClientSide) {
-            net.reversteam.strangematter.network.ResearchMachineSyncPacket packet = 
+            net.reversteam.strangematter.network.ResearchMachineSyncPacket packet =
                 new net.reversteam.strangematter.network.ResearchMachineSyncPacket(
-                    worldPosition, currentState, currentResearchId, activeResearchTypes, 
+                    worldPosition, currentState, currentResearchId, activeResearchTypes,
                     instabilityLevel, researchTicks);
-            
+
             // Send to all players tracking this chunk
             net.reversteam.strangematter.network.NetworkHandler.INSTANCE.send(
-                net.minecraftforge.network.PacketDistributor.TRACKING_CHUNK.with(
+                net.reversteam.strangematter.network.PacketTargets.TRACKING_CHUNK.with(
                     () -> level.getChunkAt(worldPosition)
                 ),
                 packet
             );
         }
     }
-    
+
     // NBT serialization
-    
+
     @Override
-    protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag);
+    protected void saveAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
         tag.putString("state", currentState.name());
         tag.putString("research_id", currentResearchId);
         tag.putFloat("instability", instabilityLevel);
         tag.putInt("research_ticks", researchTicks);
-        
+
         // Note: We don't need to save facing to NBT - the blockstate handles it
         // and the structure system will rotate it correctly when placing structures
-        
+
         // Save player ID
         if (playerId != null) {
             tag.putUUID("player_id", playerId);
         }
-        
+
         // Save current player ID
         if (currentPlayerId != null) {
             tag.putUUID("current_player_id", currentPlayerId);
         }
-        
+
         // Save active research types
         CompoundTag typesTag = new CompoundTag();
         for (ResearchType type : activeResearchTypes) {
             typesTag.putBoolean(type.name(), true);
         }
         tag.put("active_types", typesTag);
-        
+
         // Save minigame states
         CompoundTag minigameStatesTag = new CompoundTag();
         for (Map.Entry<ResearchType, Map<String, Object>> entry : minigameStates.entrySet()) {
             CompoundTag stateTag = new CompoundTag();
             Map<String, Object> state = entry.getValue();
-            
+
             for (Map.Entry<String, Object> stateEntry : state.entrySet()) {
                 Object value = stateEntry.getValue();
                 if (value instanceof Boolean) {
@@ -366,20 +366,20 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                     stateTag.putString(stateEntry.getKey(), value.toString());
                 }
             }
-            
+
             minigameStatesTag.put(entry.getKey().name(), stateTag);
         }
         tag.put("minigame_states", minigameStatesTag);
     }
-    
+
     @Override
-    public void load(CompoundTag tag) {
-        super.load(tag);
-        
+    public void loadAdditional(CompoundTag tag, net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+
         // Note: We DON'T restore facing from NBT here because the structure system
         // handles rotation automatically when placing structures. The blockstate will
         // already be correctly rotated by the time this loads.
-        
+
         // Safely load state with fallback to IDLE
         try {
             String stateStr = tag.getString("state");
@@ -391,41 +391,41 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         } catch (IllegalArgumentException e) {
             currentState = MachineState.IDLE;
         }
-        
+
         // Load research ID with fallback to empty string
         currentResearchId = tag.getString("research_id");
         if (currentResearchId == null) {
             currentResearchId = "";
         }
-        
+
         // Load instability level with fallback to 0.5f
         if (tag.contains("instability")) {
             instabilityLevel = tag.getFloat("instability");
         } else {
             instabilityLevel = 0.5f;
         }
-        
+
         // Load research ticks with fallback to 0
         if (tag.contains("research_ticks")) {
             researchTicks = tag.getInt("research_ticks");
         } else {
             researchTicks = 0;
         }
-        
+
         // Load player ID
         if (tag.contains("player_id")) {
             playerId = tag.getUUID("player_id");
         } else {
             playerId = null;
         }
-        
+
         // Load current player ID
         if (tag.contains("current_player_id")) {
             currentPlayerId = tag.getUUID("current_player_id");
         } else {
             currentPlayerId = null;
         }
-        
+
         // Load active research types with error handling
         activeResearchTypes.clear();
         if (tag.contains("active_types")) {
@@ -441,7 +441,7 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                 }
             }
         }
-        
+
         // Load minigame states
         minigameStates.clear();
         if (tag.contains("minigame_states")) {
@@ -451,7 +451,7 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                     ResearchType type = ResearchType.valueOf(typeName);
                     CompoundTag stateTag = minigameStatesTag.getCompound(typeName);
                     Map<String, Object> state = new HashMap<>();
-                    
+
                     for (String key : stateTag.getAllKeys()) {
                         Object value;
                         if (stateTag.contains(key, net.minecraft.nbt.Tag.TAG_BYTE)) {
@@ -465,17 +465,17 @@ public class ResearchMachineBlockEntity extends BlockEntity {
                         } else {
                             value = stateTag.getString(key);
                         }
-                        
+
                         state.put(key, value);
                     }
-                    
+
                     minigameStates.put(type, state);
                 } catch (IllegalArgumentException e) {
                     // Skip invalid research types
                 }
             }
         }
-        
+
         // Ensure state consistency
         if (currentState == MachineState.IDLE && (!currentResearchId.isEmpty() || !activeResearchTypes.isEmpty())) {
             // If we have research data but state is IDLE, we should be READY
@@ -486,59 +486,59 @@ public class ResearchMachineBlockEntity extends BlockEntity {
             activeResearchTypes.clear();
         }
     }
-    
+
     // Player locking methods
     public boolean isPlayerLocked(java.util.UUID playerId) {
         return currentPlayerId != null && !currentPlayerId.equals(playerId);
     }
-    
+
     public void lockToPlayer(java.util.UUID playerId) {
         this.currentPlayerId = playerId;
         setChanged();
     }
-    
+
     public void unlockPlayer() {
         this.currentPlayerId = null;
         setChanged();
     }
-    
+
     public java.util.UUID getCurrentPlayerId() {
         return currentPlayerId;
     }
-    
+
     // Minigame state persistence methods
     public Map<ResearchType, Map<String, Object>> getMinigameStates() {
         return minigameStates;
     }
-    
+
     public void setMinigameStates(Map<ResearchType, Map<String, Object>> states) {
         this.minigameStates = new HashMap<>(states);
         setChanged();
     }
-    
+
     // Setter methods for client-side updates
     public void setCurrentState(MachineState state) {
         this.currentState = state;
     }
-    
+
     public void setCurrentResearchId(String researchId) {
         this.currentResearchId = researchId;
     }
-    
+
     public void setActiveResearchTypes(Set<ResearchType> activeTypes) {
         this.activeResearchTypes = new HashSet<>(activeTypes);
     }
-    
+
     public void setInstabilityLevel(float instabilityLevel) {
         this.instabilityLevel = instabilityLevel;
     }
-    
+
     public void setResearchTicks(int researchTicks) {
         this.researchTicks = researchTicks;
     }
-    
+
     // Client-side state update method
-    public void setClientState(MachineState state, String researchId, Set<ResearchType> activeTypes, 
+    public void setClientState(MachineState state, String researchId, Set<ResearchType> activeTypes,
                               float instabilityLevel, int researchTicks) {
         this.currentState = state;
         this.currentResearchId = researchId;
@@ -546,5 +546,5 @@ public class ResearchMachineBlockEntity extends BlockEntity {
         this.instabilityLevel = instabilityLevel;
         this.researchTicks = researchTicks;
     }
-    
+
 }

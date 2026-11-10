@@ -20,65 +20,65 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraftforge.network.NetworkHooks;
+
 
 public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
-    
+
     private static final EntityDataAccessor<ItemStack> CAPSULE_ITEM = SynchedEntityData.defineId(ThrowableContainmentCapsuleEntity.class, EntityDataSerializers.ITEM_STACK);
-    
+
     public ThrowableContainmentCapsuleEntity(EntityType<? extends ThrowableContainmentCapsuleEntity> entityType, Level level) {
         super(entityType, level);
     }
-    
+
     public ThrowableContainmentCapsuleEntity(Level level, LivingEntity shooter, ItemStack capsuleItem) {
         super(StrangeMatterMod.THROWABLE_CONTAINMENT_CAPSULE.get(), shooter, level);
         this.entityData.set(CAPSULE_ITEM, capsuleItem.copy());
     }
-    
+
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-        this.entityData.define(CAPSULE_ITEM, ItemStack.EMPTY);
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(CAPSULE_ITEM, ItemStack.EMPTY);
     }
-    
+
     @Override
     public Item getDefaultItem() {
         return StrangeMatterMod.CONTAINMENT_CAPSULE.get();
     }
-    
+
     public ItemStack getCapsuleItem() {
         return this.entityData.get(CAPSULE_ITEM);
     }
-    
+
     @Override
     protected void onHit(HitResult result) {
         super.onHit(result);
-        
+
         if (!this.level().isClientSide && result.getType() == HitResult.Type.BLOCK) {
             BlockHitResult blockResult = (BlockHitResult) result;
             BlockPos hitPos = blockResult.getBlockPos();
-            
+
             ItemStack capsuleItem = getCapsuleItem();
             if (capsuleItem.getItem() instanceof ContainmentCapsuleItem containmentCapsule) {
                 ContainmentCapsuleItem.AnomalyType anomalyType = containmentCapsule.getAnomalyType();
-                
+
                 if (anomalyType != ContainmentCapsuleItem.AnomalyType.NONE) {
                     // Spawn the anomaly at the hit location
                     spawnAnomalyAtLocation((ServerLevel) this.level(), hitPos, anomalyType);
-                    
+
                     // Play glass breaking sound
-                    this.level().playSound(null, hitPos.getX(), hitPos.getY(), hitPos.getZ(), 
+                    this.level().playSound(null, hitPos.getX(), hitPos.getY(), hitPos.getZ(),
                         SoundEvents.GLASS_BREAK, SoundSource.BLOCKS, 1.0f, 1.0f);
                 }
             }
         }
-        
+
         this.discard();
     }
-    
+
     private void spawnAnomalyAtLocation(ServerLevel level, BlockPos pos, ContainmentCapsuleItem.AnomalyType anomalyType) {
         BlockPos spawnPos = pos.above(); // Spawn one block above the hit position
-        
+
         switch (anomalyType) {
             case GRAVITY:
                 GravityAnomalyEntity gravityAnomaly = StrangeMatterMod.GRAVITY_ANOMALY.get().create(level);
@@ -88,7 +88,7 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(gravityAnomaly);
                 }
                 break;
-                
+
             case ENERGETIC:
                 EnergeticRiftEntity energeticRift = StrangeMatterMod.ENERGETIC_RIFT.get().create(level);
                 if (energeticRift != null) {
@@ -97,7 +97,7 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(energeticRift);
                 }
                 break;
-                
+
             case ECHOING_SHADOW:
                 EchoingShadowEntity echoingShadow = StrangeMatterMod.ECHOING_SHADOW.get().create(level);
                 if (echoingShadow != null) {
@@ -106,7 +106,7 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(echoingShadow);
                 }
                 break;
-                
+
             case TEMPORAL_BLOOM:
                 TemporalBloomEntity temporalBloom = StrangeMatterMod.TEMPORAL_BLOOM.get().create(level);
                 if (temporalBloom != null) {
@@ -115,7 +115,7 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(temporalBloom);
                 }
                 break;
-                
+
             case THOUGHTWELL:
                 ThoughtwellEntity thoughtwell = StrangeMatterMod.THOUGHTWELL.get().create(level);
                 if (thoughtwell != null) {
@@ -124,7 +124,7 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(thoughtwell);
                 }
                 break;
-                
+
             case WARP_GATE:
                 WarpGateAnomalyEntity warpGate = StrangeMatterMod.WARP_GATE_ANOMALY_ENTITY.get().create(level);
                 if (warpGate != null) {
@@ -134,33 +134,33 @@ public class ThrowableContainmentCapsuleEntity extends ThrowableItemProjectile {
                     level.addFreshEntity(warpGate);
                 }
                 break;
-                
+
             case NONE:
                 // Do nothing for empty capsules
                 break;
         }
     }
-    
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         ItemStack capsuleItem = getCapsuleItem();
         if (!capsuleItem.isEmpty()) {
-            tag.put("CapsuleItem", capsuleItem.save(new CompoundTag()));
+            tag.put("CapsuleItem", capsuleItem.save(registryAccess()));
         }
     }
-    
+
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.contains("CapsuleItem")) {
-            ItemStack capsuleItem = ItemStack.of(tag.getCompound("CapsuleItem"));
+            ItemStack capsuleItem = ItemStack.parseOptional(registryAccess(), tag.getCompound("CapsuleItem"));
             this.entityData.set(CAPSULE_ITEM, capsuleItem);
         }
     }
-    
+
     @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket() {
-        return NetworkHooks.getEntitySpawningPacket(this);
+    public Packet<ClientGamePacketListener> getAddEntityPacket(net.minecraft.server.level.ServerEntity pairingData) {
+        return super.getAddEntityPacket(pairingData);
     }
 }

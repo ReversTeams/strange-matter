@@ -1,45 +1,46 @@
 package net.reversteam.strangematter.network;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.api.distmarker.Dist;
+
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.function.Supplier;
 
-public class GravitySyncPacket {
+public class GravitySyncPacket implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+ public static final Type<GravitySyncPacket> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "gravity_sync_packet"));
+ @Override public Type<GravitySyncPacket> type() { return TYPE; }
     private final double gravityForce;
-    
+
     public GravitySyncPacket(double gravityForce) {
         this.gravityForce = gravityForce;
     }
-    
+
     public GravitySyncPacket(FriendlyByteBuf buffer) {
         this.gravityForce = buffer.readDouble();
     }
-    
+
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeDouble(this.gravityForce);
     }
-    
-    public void handle(Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        
+
+    public void handle(Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
+
         context.enqueueWork(() -> {
-            if (context.getSender() != null) {
+            if ((context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null) != null) {
                 // Server-side handling (shouldn't happen with our current setup)
-                context.getSender().getPersistentData().putDouble("strangematter.gravity_force", this.gravityForce);
+                (context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null).getPersistentData().putDouble("strangematter.gravity_force", this.gravityForce);
                 return;
             }
-            if (context.getDirection().getReceptionSide().isClient()) {
+            if (context.flow().isClientbound()) {
                 double force = this.gravityForce;
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                    net.reversteam.strangematter.client.network.ClientPacketHandlers.handleGravitySync(force));
+                net.reversteam.strangematter.client.network.ClientPacketHandlers.handleGravitySync(force);
             }
         });
-        context.setPacketHandled(true);
+
     }
-    
+
     public double getGravityForce() {
         return gravityForce;
     }

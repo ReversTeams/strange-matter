@@ -5,7 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.function.Supplier;
 
@@ -32,11 +32,11 @@ public class MachineStatePacket {
         return new MachineStatePacket(pos, data);
     }
 
-    public static void handle(MachineStatePacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+    public static void handle(MachineStatePacket packet, Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
         context.enqueueWork(() -> {
             // Handle on client side
-            Level world = context.getSender() != null ? context.getSender().level() : null;
+            Level world = (context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null) != null ? (context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null).level() : null;
             if (world != null) {
                 BlockEntity blockEntity = world.getBlockEntity(packet.pos);
                 if (blockEntity instanceof IPacketHandlerTile handlerTile) {
@@ -44,7 +44,7 @@ public class MachineStatePacket {
                 }
             }
         });
-        context.setPacketHandled(true);
+
     }
 
     public static void sendToClient(IPacketHandlerTile tile) {

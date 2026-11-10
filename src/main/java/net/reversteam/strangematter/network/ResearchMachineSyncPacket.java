@@ -4,24 +4,26 @@ import net.reversteam.strangematter.block.ResearchMachineBlockEntity;
 import net.reversteam.strangematter.research.ResearchType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.api.distmarker.Dist;
+
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class ResearchMachineSyncPacket {
+public class ResearchMachineSyncPacket implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+ public static final Type<ResearchMachineSyncPacket> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "research_machine_sync_packet"));
+ @Override public Type<ResearchMachineSyncPacket> type() { return TYPE; }
     private final BlockPos pos;
     private final ResearchMachineBlockEntity.MachineState state;
     private final String researchId;
     private final Set<ResearchType> activeTypes;
     private final float instabilityLevel;
     private final int researchTicks;
-    
-    public ResearchMachineSyncPacket(BlockPos pos, ResearchMachineBlockEntity.MachineState state, 
-                                   String researchId, Set<ResearchType> activeTypes, 
+
+    public ResearchMachineSyncPacket(BlockPos pos, ResearchMachineBlockEntity.MachineState state,
+                                   String researchId, Set<ResearchType> activeTypes,
                                    float instabilityLevel, int researchTicks) {
         this.pos = pos;
         this.state = state;
@@ -30,7 +32,7 @@ public class ResearchMachineSyncPacket {
         this.instabilityLevel = instabilityLevel;
         this.researchTicks = researchTicks;
     }
-    
+
     public static void encode(ResearchMachineSyncPacket packet, FriendlyByteBuf buffer) {
         buffer.writeBlockPos(packet.pos);
         buffer.writeEnum(packet.state);
@@ -42,7 +44,7 @@ public class ResearchMachineSyncPacket {
         buffer.writeFloat(packet.instabilityLevel);
         buffer.writeInt(packet.researchTicks);
     }
-    
+
     public static ResearchMachineSyncPacket new_(FriendlyByteBuf buffer) {
         BlockPos pos = buffer.readBlockPos();
         ResearchMachineBlockEntity.MachineState state = buffer.readEnum(ResearchMachineBlockEntity.MachineState.class);
@@ -56,12 +58,12 @@ public class ResearchMachineSyncPacket {
         int researchTicks = buffer.readInt();
         return new ResearchMachineSyncPacket(pos, state, researchId, activeTypes, instabilityLevel, researchTicks);
     }
-    
-    public static void handle(ResearchMachineSyncPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
+
+    public static void handle(ResearchMachineSyncPacket packet, Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
         context.enqueueWork(() -> {
-            if (context.getSender() != null) return; // server side - shouldn't happen
-            if (!context.getDirection().getReceptionSide().isClient()) return;
+            if ((context.player() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null) != null) return; // server side - shouldn't happen
+            if (!context.flow().isClientbound()) return;
 
             BlockPos pos = packet.pos;
             ResearchMachineBlockEntity.MachineState state = packet.state;
@@ -70,12 +72,11 @@ public class ResearchMachineSyncPacket {
             float instabilityLevel = packet.instabilityLevel;
             int researchTicks = packet.researchTicks;
 
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                net.reversteam.strangematter.client.network.ClientPacketHandlers.handleResearchMachineSync(
+            net.reversteam.strangematter.client.network.ClientPacketHandlers.handleResearchMachineSync(
                     pos, state, researchId, activeTypes, instabilityLevel, researchTicks
                 )
-            );
+            ;
         });
-        context.setPacketHandled(true);
+
     }
 }

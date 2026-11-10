@@ -32,16 +32,16 @@ public class FieldScannerItem extends Item {
     private static final String SCAN_TARGET_TAG = "scan_target";
     private static final String SCAN_PROGRESS_TAG = "scan_progress";
     private static final String SCAN_ENTITY_TAG = "scan_entity";
-    
+
     public FieldScannerItem() {
         super(new Item.Properties().stacksTo(1));
     }
-    
+
     @Override
-    public void initializeClient(java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions> consumer) {
+    public void initializeClient(java.util.function.Consumer<net.neoforged.neoforge.client.extensions.common.IClientItemExtensions> consumer) {
         consumer.accept(new net.reversteam.strangematter.client.FieldScannerRenderer());
     }
-    
+
     @Override
     public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
         super.inventoryTick(stack, level, entity, slotId, isSelected);
@@ -64,29 +64,29 @@ public class FieldScannerItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        
+
         // Validate and clean up any corrupted scanning state
         validateAndCleanScanningState(stack);
-        
+
         // Check if already scanning
         if (isScanning(stack)) {
             return InteractionResultHolder.pass(stack);
         }
-        
+
         // For general use (not targeting specific entities/blocks), do nothing
-        
+
         return InteractionResultHolder.pass(stack);
     }
-    
+
     // Called by the event handler when interacting with entities
     public void onInteractWithEntity(ItemStack stack, Player player, Entity entity, InteractionHand hand) {
         if (player.level().isClientSide) {
             return;
         }
-        
+
         // Validate and clean up any corrupted scanning state before attempting a new scan
         validateAndCleanScanningState(stack);
-        
+
         if (ScannableObjectRegistry.isEntityScannable(entity)) {
             // Check if this is an anomaly spawned from a capsule
             if (entity instanceof net.reversteam.strangematter.entity.BaseAnomalyEntity anomaly) {
@@ -95,18 +95,18 @@ public class FieldScannerItem extends Item {
                     return;
                 }
             }
-            
+
             Optional<ScannableObject> scannable = ScannableObjectRegistry.getScannableForEntity(entity);
             if (scannable.isPresent()) {
                 String objectId = scannable.get().generateObjectId(entity);
                 ResearchData researchData = ResearchData.get(player);
-                
+
                 if (!researchData.hasScanned(objectId)) {
                     // Only show message if not already scanning
                     if (!isScanning(stack)) {
                         startScanning(stack, objectId, scannable.get(), entity);
                         player.sendSystemMessage(Component.literal("§eScanning " + entity.getDisplayName().getString() + "..."));
-                        
+
                         // Start the use animation
                         player.startUsingItem(hand);
                     }
@@ -123,25 +123,25 @@ public class FieldScannerItem extends Item {
             player.sendSystemMessage(Component.literal("§cNo research data available from this entity."));
         }
     }
-    
+
     // Called by the event handler when interacting with blocks
     public void onInteractWithBlock(ItemStack stack, Player player, BlockPos pos, BlockState blockState, ScannableObject scannable, InteractionHand hand) {
         if (player.level().isClientSide) {
             return;
         }
-        
+
         // Validate and clean up any corrupted scanning state before attempting a new scan
         validateAndCleanScanningState(stack);
-        
+
         String objectId = scannable.generateObjectId(pos);
         ResearchData researchData = ResearchData.get(player);
-        
+
         if (!researchData.hasScanned(objectId)) {
             // Only show message if not already scanning
             if (!isScanning(stack)) {
                 startScanning(stack, objectId, scannable);
                 player.sendSystemMessage(Component.literal("§eScanning " + blockState.getBlock().getName().getString() + "..."));
-                
+
                 // Start the use animation
                 player.startUsingItem(hand);
             }
@@ -154,43 +154,43 @@ public class FieldScannerItem extends Item {
             }
         }
     }
-    
-    
+
+
     @Override
     public void onUseTick(Level level, LivingEntity livingEntity, ItemStack stack, int remainingUseDuration) {
         if (level.isClientSide || !(livingEntity instanceof Player player)) {
             return;
         }
-        
+
         // Validate scanning state - if corrupted, stop the scan
         if (!isScanning(stack) || !isValidScanningState(stack)) {
             stopScanning(stack);
             return;
         }
-        
+
         int progress = getScanProgress(stack);
         progress++;
         setScanProgress(stack, progress);
-        
+
         // Play scanning sound
         if (progress % 10 == 0) { // Every 0.5 seconds
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), 
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 net.reversteam.strangematter.sound.StrangeMatterSounds.FIELD_SCANNER_SCAN.get(), SoundSource.PLAYERS, 0.3f, 1.2f);
         }
-        
+
         if (progress >= SCAN_DURATION) {
             completeScan(level, player, stack);
             // Stop the use animation
             player.stopUsingItem();
         }
     }
-    
+
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity livingEntity, int timeCharged) {
         if (level.isClientSide || !(livingEntity instanceof Player player)) {
             return;
         }
-        
+
         if (isScanning(stack)) {
             // Cancel scan if player releases early
             stopScanning(stack);
@@ -200,12 +200,12 @@ public class FieldScannerItem extends Item {
             validateAndCleanScanningState(stack);
         }
     }
-    
+
     @Override
-    public int getUseDuration(ItemStack stack) {
+    public int getUseDuration(ItemStack stack, net.minecraft.world.entity.LivingEntity entity) {
         return isScanning(stack) ? SCAN_DURATION : 0;
     }
-    
+
     @Override
     public boolean canContinueUsing(ItemStack oldStack, ItemStack newStack) {
         // If the stack changed and scanning state is invalid, clean it up
@@ -217,76 +217,76 @@ public class FieldScannerItem extends Item {
         }
         return isScanning(oldStack) && isScanning(newStack);
     }
-    
+
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
         return isScanning(stack) ? UseAnim.SPYGLASS : UseAnim.NONE;
     }
-    
+
     private void startScanning(ItemStack stack, String objectId, ScannableObject scannable) {
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putBoolean(SCANNING_TAG, true);
-        tag.putString(SCAN_TARGET_TAG, objectId);
-        tag.putString("scan_type", scannable.getResearchType().getName());
-        tag.putInt("scan_amount", scannable.getResearchAmount());
-        tag.putInt(SCAN_PROGRESS_TAG, 0);
-        
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.getOrCreate(stack);
+        net.reversteam.strangematter.util.ItemData.putBoolean(stack, tag, SCANNING_TAG, true);
+        net.reversteam.strangematter.util.ItemData.putString(stack, tag, SCAN_TARGET_TAG, objectId);
+        net.reversteam.strangematter.util.ItemData.putString(stack, tag, "scan_type", scannable.getResearchType().getName());
+        net.reversteam.strangematter.util.ItemData.putInt(stack, tag, "scan_amount", scannable.getResearchAmount());
+        net.reversteam.strangematter.util.ItemData.putInt(stack, tag, SCAN_PROGRESS_TAG, 0);
+
         // Start the use animation by setting the use duration
         // This will trigger the onUseTick method
     }
-    
+
     private void startScanning(ItemStack stack, String objectId, ScannableObject scannable, Entity entity) {
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putBoolean(SCANNING_TAG, true);
-        tag.putString(SCAN_TARGET_TAG, objectId);
-        tag.putString("scan_type", scannable.getResearchType().getName());
-        tag.putInt("scan_amount", scannable.getResearchAmount());
-        tag.putInt(SCAN_PROGRESS_TAG, 0);
-        tag.putString(SCAN_ENTITY_TAG, entity.getType().toString());
-        
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.getOrCreate(stack);
+        net.reversteam.strangematter.util.ItemData.putBoolean(stack, tag, SCANNING_TAG, true);
+        net.reversteam.strangematter.util.ItemData.putString(stack, tag, SCAN_TARGET_TAG, objectId);
+        net.reversteam.strangematter.util.ItemData.putString(stack, tag, "scan_type", scannable.getResearchType().getName());
+        net.reversteam.strangematter.util.ItemData.putInt(stack, tag, "scan_amount", scannable.getResearchAmount());
+        net.reversteam.strangematter.util.ItemData.putInt(stack, tag, SCAN_PROGRESS_TAG, 0);
+        net.reversteam.strangematter.util.ItemData.putString(stack, tag, SCAN_ENTITY_TAG, entity.getType().toString());
+
         // Start the use animation by setting the use duration
         // This will trigger the onUseTick method
     }
-    
+
     private void stopScanning(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putBoolean(SCANNING_TAG, false);
-        tag.remove(SCAN_TARGET_TAG);
-        tag.remove("scan_type");
-        tag.remove("scan_amount");
-        tag.remove(SCAN_PROGRESS_TAG);
-        tag.remove(SCAN_ENTITY_TAG);
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.getOrCreate(stack);
+        net.reversteam.strangematter.util.ItemData.putBoolean(stack, tag, SCANNING_TAG, false);
+        net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_TARGET_TAG);
+        net.reversteam.strangematter.util.ItemData.remove(stack, tag, "scan_type");
+        net.reversteam.strangematter.util.ItemData.remove(stack, tag, "scan_amount");
+        net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_PROGRESS_TAG);
+        net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_ENTITY_TAG);
         // Add a cooldown to prevent immediate re-scanning
-        tag.putLong("scan_cooldown", System.currentTimeMillis() + 1000); // 1 second cooldown
+        net.reversteam.strangematter.util.ItemData.putLong(stack, tag, "scan_cooldown", System.currentTimeMillis() + 1000); // 1 second cooldown
     }
-    
+
     private void completeScan(Level level, Player player, ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         if (tag == null) {
             // Ensure cleanup even if tag is null
             stopScanning(stack);
             return;
         }
-        
+
         try {
             String objectId = tag.getString(SCAN_TARGET_TAG);
             ResearchType researchType = ResearchType.fromName(tag.getString("scan_type"));
             int amount = tag.getInt("scan_amount");
-            
+
             if (researchType != null && !objectId.isEmpty()) {
                 // Add research points
                 ResearchData researchData = ResearchData.get(player);
                 researchData.addResearchPoints(researchType.getName(), amount);
                 researchData.markAsScanned(objectId);
-                
+
                 // Sync to client
                 if (player instanceof ServerPlayer serverPlayer) {
                     researchData.syncToClient(serverPlayer);
                     NetworkHandler.INSTANCE.send(
-                        net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> serverPlayer), 
+                        net.reversteam.strangematter.network.PacketTargets.PLAYER.with(() -> serverPlayer),
                         new ResearchGainPacket(researchType, amount)
                     );
-                    
+
                     // Trigger advancement for scanning anomaly
                     String entityType = tag.getString(SCAN_ENTITY_TAG);
                     if (!entityType.isEmpty()) {
@@ -300,11 +300,11 @@ public class FieldScannerItem extends Item {
                             });
                     }
                 }
-                
+
                 // Play success sound
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), 
+                level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 1.0f, 1.5f);
-                
+
                 // Research points are displayed via the overlay, not chat
             }
         } catch (Exception e) {
@@ -315,11 +315,11 @@ public class FieldScannerItem extends Item {
             stopScanning(stack);
         }
     }
-    
+
     public boolean isScanning(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         if (tag == null) return false;
-        
+
         boolean scanning = tag.getBoolean(SCANNING_TAG);
         // If scanning flag is true but state is invalid, auto-clean it
         if (scanning && !isValidScanningState(stack)) {
@@ -328,15 +328,15 @@ public class FieldScannerItem extends Item {
         }
         return scanning;
     }
-    
+
     /**
      * Validates that the scanning state is complete and valid.
      * A valid scanning state must have all required tags present.
      */
     private boolean isValidScanningState(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         if (tag == null) return false;
-        
+
         // Must have scanning flag and required tags
         if (!tag.contains(SCAN_TARGET_TAG) || tag.getString(SCAN_TARGET_TAG).isEmpty()) {
             return false;
@@ -350,18 +350,18 @@ public class FieldScannerItem extends Item {
         if (!tag.contains(SCAN_PROGRESS_TAG)) {
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Validates and cleans up corrupted scanning state.
      * This prevents the scanner from getting stuck in a scanning state.
      */
     private void validateAndCleanScanningState(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         if (tag == null) return;
-        
+
         // If scanning flag is set but state is invalid, clean it up
         if (tag.getBoolean(SCANNING_TAG)) {
             if (!isValidScanningState(stack)) {
@@ -369,37 +369,37 @@ public class FieldScannerItem extends Item {
             }
         } else {
             // If scanning flag is false but scanning tags remain, remove them
-            if (tag.contains(SCAN_TARGET_TAG) || tag.contains("scan_type") || 
-                tag.contains("scan_amount") || tag.contains(SCAN_PROGRESS_TAG) || 
+            if (tag.contains(SCAN_TARGET_TAG) || tag.contains("scan_type") ||
+                tag.contains("scan_amount") || tag.contains(SCAN_PROGRESS_TAG) ||
                 tag.contains(SCAN_ENTITY_TAG)) {
-                tag.remove(SCAN_TARGET_TAG);
-                tag.remove("scan_type");
-                tag.remove("scan_amount");
-                tag.remove(SCAN_PROGRESS_TAG);
-                tag.remove(SCAN_ENTITY_TAG);
+                net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_TARGET_TAG);
+                net.reversteam.strangematter.util.ItemData.remove(stack, tag, "scan_type");
+                net.reversteam.strangematter.util.ItemData.remove(stack, tag, "scan_amount");
+                net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_PROGRESS_TAG);
+                net.reversteam.strangematter.util.ItemData.remove(stack, tag, SCAN_ENTITY_TAG);
             }
         }
     }
-    
+
     public boolean isOnCooldown(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         if (tag == null) return false;
         long cooldown = tag.getLong("scan_cooldown");
         return System.currentTimeMillis() < cooldown;
     }
-    
+
     private void setCooldown(ItemStack stack, long durationMs) {
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putLong("scan_cooldown", System.currentTimeMillis() + durationMs);
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.getOrCreate(stack);
+        net.reversteam.strangematter.util.ItemData.putLong(stack, tag, "scan_cooldown", System.currentTimeMillis() + durationMs);
     }
-    
+
     private int getScanProgress(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.get(stack);
         return tag != null ? tag.getInt(SCAN_PROGRESS_TAG) : 0;
     }
-    
+
     private void setScanProgress(ItemStack stack, int progress) {
-        CompoundTag tag = stack.getOrCreateTag();
-        tag.putInt(SCAN_PROGRESS_TAG, progress);
+        CompoundTag tag = net.reversteam.strangematter.util.ItemData.getOrCreate(stack);
+        net.reversteam.strangematter.util.ItemData.putInt(stack, tag, SCAN_PROGRESS_TAG, progress);
     }
 }

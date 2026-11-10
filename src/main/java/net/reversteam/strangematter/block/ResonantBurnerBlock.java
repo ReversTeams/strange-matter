@@ -27,9 +27,9 @@ import net.minecraft.world.level.BlockGetter;
 import net.reversteam.strangematter.StrangeMatterMod;
 
 public class ResonantBurnerBlock extends Block implements EntityBlock {
-    
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    
+
     public ResonantBurnerBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.COLOR_ORANGE)
@@ -44,57 +44,56 @@ public class ResonantBurnerBlock extends Block implements EntityBlock {
         // Register the default state with NORTH facing
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
-    
+
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
     }
-    
+
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         // Get the horizontal direction the player is looking
         Direction facing = context.getHorizontalDirection();
         return this.defaultBlockState().setValue(FACING, facing);
     }
-    
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+
+    private InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide) {
             BlockEntity tile = level.getBlockEntity(pos);
             if (tile instanceof ResonantBurnerBlockEntity burner) {
                 // Use NetworkHooks.openScreen like other machines
-                net.minecraftforge.network.NetworkHooks.openScreen((net.minecraft.server.level.ServerPlayer) player, burner, pos);
+                ((net.minecraft.server.level.ServerPlayer) player).openMenu(burner, pos);
                 return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
-    
+
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new ResonantBurnerBlockEntity(pos, state);
     }
-    
+
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType) {
-        return blockEntityType == StrangeMatterMod.RESONANT_BURNER_BLOCK_ENTITY.get() && !level.isClientSide ? 
+        return blockEntityType == StrangeMatterMod.RESONANT_BURNER_BLOCK_ENTITY.get() && !level.isClientSide ?
             (level1, pos, state1, blockEntity) -> {
                 if (blockEntity instanceof ResonantBurnerBlockEntity burner) {
                     ResonantBurnerBlockEntity.tick(level1, pos, state1, burner);
                 }
             } : null;
     }
-    
+
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return Shapes.block(); // Full block shape for proper selection box
     }
-    
+
     @Override
     public VoxelShape getVisualShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return Shapes.block(); // Full block visual shape
     }
-    
+
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         if (!state.is(newState.getBlock())) {
@@ -105,5 +104,17 @@ public class ResonantBurnerBlock extends Block implements EntityBlock {
             }
             super.onRemove(state, level, pos, newState, isMoving);
         }
+    }
+
+    @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        return interact(state, level, pos, player, InteractionHand.MAIN_HAND, hit);
+    }
+    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch(interact(state,level,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME, CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            default -> net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        };
     }
 }

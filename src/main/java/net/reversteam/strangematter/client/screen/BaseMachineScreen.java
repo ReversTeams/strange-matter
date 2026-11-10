@@ -12,23 +12,23 @@ import net.minecraft.world.entity.player.Inventory;
  * This provides reusable GUI logic for all Strange Matter machines.
  */
 public abstract class BaseMachineScreen<T extends BaseMachineMenu> extends AbstractContainerScreen<T> {
-    
+
     protected final T menu;
     protected final ResourceLocation texture;
-    
+
     public BaseMachineScreen(T menu, Inventory playerInventory, Component title, ResourceLocation texture) {
         super(menu, playerInventory, title);
         this.menu = menu;
         this.texture = texture;
     }
-    
+
     @Override
     protected void init() {
         super.init();
         this.titleLabelX = (this.imageWidth - this.font.width(this.title)) / 2;
         this.inventoryLabelX = (this.imageWidth - this.font.width(this.playerInventoryTitle)) / 2;
     }
-    
+
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (this.width - this.imageWidth) / 2;
@@ -36,35 +36,34 @@ public abstract class BaseMachineScreen<T extends BaseMachineMenu> extends Abstr
         // Render texture at 1:1 scale to match the actual texture dimensions
         guiGraphics.blit(texture, x, y, 0, 0, this.imageWidth, this.imageHeight, this.imageWidth, this.imageHeight);
     }
-    
+
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         // Render title
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0x26bdba, false);
-        
+
         // Render machine-specific labels (implemented by subclasses)
         renderMachineLabels(guiGraphics, mouseX, mouseY);
     }
-    
+
     /**
      * Override this to add machine-specific labels and information.
      */
     protected abstract void renderMachineLabels(GuiGraphics guiGraphics, int mouseX, int mouseY);
-    
+
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
     }
-    
+
     /**
      * Get the machine inventory for subclasses to access.
      */
     protected net.minecraft.world.Container getMachineInventory() {
         return this.menu.getMachineInventory();
     }
-    
+
     /**
      * Render energy bar at the specified position using the reusable component.
      * This method can be called by subclasses to easily add energy bars to their screens.
@@ -72,7 +71,7 @@ public abstract class BaseMachineScreen<T extends BaseMachineMenu> extends Abstr
     protected void renderEnergyBar(GuiGraphics guiGraphics, int x, int y, int energyStored, int maxEnergyStored) {
         EnergyBarRenderer.renderEnergyBar(guiGraphics, x, y, energyStored, maxEnergyStored);
     }
-    
+
     /**
      * Check if mouse is over energy bar and render tooltip if so.
      * This method can be called by subclasses to handle energy bar tooltips.

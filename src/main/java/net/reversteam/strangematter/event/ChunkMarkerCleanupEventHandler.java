@@ -4,9 +4,9 @@ import net.reversteam.strangematter.StrangeMatterMod;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraftforge.event.level.ChunkDataEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.level.ChunkDataEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 
 /**
  * Cleans up stray anomaly marker block-entity NBT that can get persisted with an AIR block state, causing
@@ -15,7 +15,7 @@ import net.minecraftforge.fml.common.Mod;
  * We strip these entries on both SAVE (prevents new region files from accumulating spam) and LOAD (fixes
  * already-written chunks before they are fully deserialized).
  */
-@Mod.EventBusSubscriber(modid = StrangeMatterMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@net.neoforged.fml.common.EventBusSubscriber(modid = StrangeMatterMod.MODID, bus = net.neoforged.fml.common.EventBusSubscriber.Bus.GAME)
 public class ChunkMarkerCleanupEventHandler {
     private static final String MARKER_BE_ID = StrangeMatterMod.MODID + ":anomaly_spawner_marker";
 

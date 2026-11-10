@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
  * Provides common functionality for ore blocks that drop shards.
  */
 public abstract class ShardOreBlock extends Block {
-    
+
     public ShardOreBlock() {
         super(BlockBehaviour.Properties.of()
             .mapColor(MapColor.COLOR_PURPLE)
@@ -29,13 +29,13 @@ public abstract class ShardOreBlock extends Block {
             .requiresCorrectToolForDrops()
         );
     }
-    
-    
+
+
     @Override
     public SoundType getSoundType(@Nonnull BlockState state) {
         return SoundType.STONE;
     }
-    
+
     @Override
     @SuppressWarnings("deprecation")
     public List<ItemStack> getDrops(@Nonnull BlockState state, @Nonnull LootParams.Builder builder) {
@@ -51,10 +51,10 @@ public abstract class ShardOreBlock extends Block {
 
         return super.getDrops(state, builder);
     }
-    
+
     @Override
-    public int getExpDrop(BlockState state, net.minecraft.world.level.LevelReader level, net.minecraft.util.RandomSource random, BlockPos pos, int fortuneLevel, int silkTouchLevel) {
+    public int getExpDrop(BlockState state, net.minecraft.world.level.LevelAccessor level, BlockPos pos, net.minecraft.world.level.block.entity.BlockEntity blockEntity, net.minecraft.world.entity.Entity breaker, ItemStack tool) {
         // Drop experience like coal ore (0-2 experience)
-        return silkTouchLevel == 0 ? random.nextInt(3) : 0;
+        return tool.getEnchantmentLevel(level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH)) == 0 ? level.getRandom().nextInt(3) : 0;
     }
 }

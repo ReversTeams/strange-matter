@@ -1,40 +1,41 @@
 package net.reversteam.strangematter.network;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.api.distmarker.Dist;
+
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.function.Supplier;
 
-public class TimeDilationSyncPacket {
+public class TimeDilationSyncPacket implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+ public static final Type<TimeDilationSyncPacket> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("strangematter", "time_dilation_sync_packet"));
+ @Override public Type<TimeDilationSyncPacket> type() { return TYPE; }
     private final double slowdownFactor;
-    
+
     public TimeDilationSyncPacket(double slowdownFactor) {
         this.slowdownFactor = slowdownFactor;
     }
-    
+
     public TimeDilationSyncPacket(FriendlyByteBuf buffer) {
         this.slowdownFactor = buffer.readDouble();
     }
-    
+
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeDouble(this.slowdownFactor);
     }
-    
-    public void handle(Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        
+
+    public void handle(Supplier<IPayloadContext> contextSupplier) {
+        IPayloadContext context = contextSupplier.get();
+
         context.enqueueWork(() -> {
-            if (context.getDirection().getReceptionSide().isClient()) {
+            if (context.flow().isClientbound()) {
                 double factor = this.slowdownFactor;
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                    net.reversteam.strangematter.client.network.ClientPacketHandlers.handleTimeDilationSync(factor));
+                net.reversteam.strangematter.client.network.ClientPacketHandlers.handleTimeDilationSync(factor);
             }
         });
-        context.setPacketHandled(true);
+
     }
-    
+
     public double getSlowdownFactor() {
         return slowdownFactor;
     }

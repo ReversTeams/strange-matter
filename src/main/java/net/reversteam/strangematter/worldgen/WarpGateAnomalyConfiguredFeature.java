@@ -8,28 +8,28 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import javax.annotation.Nonnull;
 
 public class WarpGateAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeature {
-    
+
     @Override
     public boolean place(@Nonnull FeaturePlaceContext<NoneFeatureConfiguration> context) {
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
         BlockPos origin = context.origin();
-        
+
         // Use WorldGenUtils to efficiently find surface and ground
         WorldGenUtils.SurfaceInfo surfaceInfo = WorldGenUtils.findSurfaceAndGround(level, origin.getX(), origin.getZ());
         if (surfaceInfo == null) {
             return false; // No valid ground found
         }
-        
+
         // Spawn the anomaly a few blocks above the surface
         int surfaceY = surfaceInfo.surfacePos.getY();
         int anomalyY = surfaceY + 2 + random.nextInt(3);
         BlockPos anomalyPos = new BlockPos(origin.getX(), anomalyY, origin.getZ());
-        
+
         // Place a marker block that will spawn the entity on the next server tick
         // This defers entity spawning from the world generation thread to the main server thread
         var markerBlock = (net.reversteam.strangematter.block.AnomalySpawnerMarkerBlock) StrangeMatterMod.ANOMALY_SPAWNER_MARKER_BLOCK.get();
@@ -40,16 +40,16 @@ public class WarpGateAnomalyConfiguredFeature extends BaseAnomalyConfiguredFeatu
             return false;
         }
         level.scheduleTick(anomalyPos, markerBlock, 1);
-        
+
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
         placeOres(level, anomalyPos, surfaceY, random, StrangeMatterMod.SPATIAL_SHARD_CRYSTAL.get());
-        
+
         return true;
     }
-    
+
     @Override
-    protected RegistryObject<Block> getShardOreBlock() {
+    protected java.util.function.Supplier<Block> getShardOreBlock() {
         return StrangeMatterMod.SPATIAL_SHARD_ORE_BLOCK;
     }
 }

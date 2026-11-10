@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "III",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "strangematter:resonite_ingot"
+    }
+  },
+  "result": {
+    "count": 2,
+    "id": "strangematter:resonite_trapdoor"
+  }
+}

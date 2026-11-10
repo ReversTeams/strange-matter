@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 public class ResearchDataServerHandler {
     public static void syncResearchDataToClient(ServerPlayer player, ResearchData data) {
         NetworkHandler.INSTANCE.send(
-            net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), 
+            net.reversteam.strangematter.network.PacketTargets.PLAYER.with(() -> player),
             new ResearchSyncPacket(data)
         );
     }

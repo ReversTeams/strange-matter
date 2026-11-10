@@ -12,30 +12,30 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
 
 import java.util.Optional;
 
-@Mod.EventBusSubscriber(modid = StrangeMatterMod.MODID)
+@net.neoforged.fml.common.EventBusSubscriber(modid = StrangeMatterMod.MODID)
 public class FieldScannerEventHandler {
-    
+
     // Track when "already scanned" messages were last sent to prevent spam
     private static final java.util.Map<String, Long> lastAlreadyScannedMessage = new java.util.HashMap<>();
-    
+
     @SubscribeEvent
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getTarget() instanceof BaseAnomalyEntity anomaly) {
             Player player = event.getEntity();
-            
+
             // Check both hands for the field scanner
             ItemStack mainHand = player.getItemInHand(InteractionHand.MAIN_HAND);
             ItemStack offHand = player.getItemInHand(InteractionHand.OFF_HAND);
-            
+
             FieldScannerItem scanner = null;
             ItemStack scannerStack = null;
-            
+
             if (mainHand.getItem() instanceof FieldScannerItem) {
                 scanner = (FieldScannerItem) mainHand.getItem();
                 scannerStack = mainHand;
@@ -43,7 +43,7 @@ public class FieldScannerEventHandler {
                 scanner = (FieldScannerItem) offHand.getItem();
                 scannerStack = offHand;
             }
-            
+
             if (scanner != null && scannerStack != null) {
                 // Only handle if not already scanning and not on cooldown to prevent spam
                 if (!scanner.isScanning(scannerStack) && !scanner.isOnCooldown(scannerStack)) {
@@ -54,20 +54,20 @@ public class FieldScannerEventHandler {
             }
         }
     }
-    
+
     @SubscribeEvent
     public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event) {
         Player player = event.getEntity();
         BlockPos pos = event.getPos();
         BlockState blockState = event.getLevel().getBlockState(pos);
-        
+
         // Check both hands for the field scanner
         ItemStack mainHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         ItemStack offHand = player.getItemInHand(InteractionHand.OFF_HAND);
-        
+
         FieldScannerItem scanner = null;
         ItemStack scannerStack = null;
-        
+
         if (mainHand.getItem() instanceof FieldScannerItem) {
             scanner = (FieldScannerItem) mainHand.getItem();
             scannerStack = mainHand;
@@ -75,7 +75,7 @@ public class FieldScannerEventHandler {
             scanner = (FieldScannerItem) offHand.getItem();
             scannerStack = offHand;
         }
-        
+
         if (scanner != null && scannerStack != null) {
             // Check if the block is scannable
             if (ScannableObjectRegistry.isBlockScannable(blockState)) {
@@ -83,7 +83,7 @@ public class FieldScannerEventHandler {
                 if (scannable.isPresent()) {
                     String objectId = scannable.get().generateObjectId(pos);
                     ResearchData researchData = ResearchData.get(player);
-                    
+
                     if (!researchData.hasScanned(objectId)) {
                         // Only start scanning if not already scanning and not on cooldown to prevent spam
                         if (!scanner.isScanning(scannerStack) && !scanner.isOnCooldown(scannerStack)) {

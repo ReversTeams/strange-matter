@@ -1,0 +1,16 @@
+Minecraft 1.21.1 / NeoForge 21.1.265 / Java 21
+
+Build: successful. Runtime: isolated NeoForge client launched, new singleplayer world created and entered, naturally generated anomaly rendered.
+Fixed world creation failure: biome holder-set operators use neoforge:not and neoforge:or; biome modifiers moved into neoforge/biome_modifier.
+Also migrated payloads, registries, energy capabilities, machine serialization, item custom data, armor, recipe codecs, client rendering, interaction APIs and resource registry paths.
+Remaining validation: full research progression, every machine/tool, dedicated server and multiplayer, JEI and KubeJS integrations, and large modpack compatibility. Treat this as an initial testing build.
+No existing user worlds or installed modpacks were modified.
+
+Build with Java 21: gradlew.bat build
+Resource regression checks: python tools/validate_resources.py
+
+port.2: Research info and tablet screens render the backdrop once before content; the late background pass from Screen.render is suppressed to prevent blurring text and screenshots. Build verified; this visual fix has not been verified after a client restart.
+
+port.3: Applied single backdrop rendering to the research machine; removed duplicate native container background passes from the machine base screen and Reality Forge. Build checked; visual confirmation requires restarting Minecraft.
+
+port.4: Energetic rift center uses a two-sided emissive translucent pass. Lightning opacity stays in range, arcs include their starting segment, crossed normalized ribbons retain width from different viewing angles, and overlapping targets are guarded against zero-length geometry. Build checked; visual verification after restart remains pending.

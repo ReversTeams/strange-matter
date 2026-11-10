@@ -14,8 +14,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 @JeiPlugin
 public class StrangeMatterJeiPlugin implements IModPlugin {
@@ -40,7 +40,7 @@ public class StrangeMatterJeiPlugin implements IModPlugin {
         if (FMLEnvironment.dist != Dist.CLIENT) {
             return;
         }
-        
+
         addInfoPages(registration);
 
         java.util.List<net.reversteam.strangematter.jei.recipes.RealityForgeRecipe> recipes = loadAllRealityForgeRecipes();
@@ -64,7 +64,8 @@ public class StrangeMatterJeiPlugin implements IModPlugin {
             if (recipeType == null) {
                 return recipes;
             }
-            for (RealityForgeRecipe recipe : recipeManager.getAllRecipesFor(recipeType)) {
+            for (var holder : recipeManager.getAllRecipesFor(recipeType)) {
+            RealityForgeRecipe recipe = holder.value();
                 net.reversteam.strangematter.jei.recipes.RealityForgeRecipe jeiRecipe = convertToJeiRecipe(recipe, level);
                 if (jeiRecipe != null) {
                     recipes.add(jeiRecipe);
@@ -76,22 +77,22 @@ public class StrangeMatterJeiPlugin implements IModPlugin {
         }
         return recipes;
     }
-    
+
     private net.minecraft.world.level.Level getClientLevel() {
         // Safe way to get client level - this method is only called on client side
         return net.minecraft.client.Minecraft.getInstance().level;
     }
-    
+
     private net.reversteam.strangematter.jei.recipes.RealityForgeRecipe convertToJeiRecipe(
-            net.reversteam.strangematter.recipe.RealityForgeRecipe recipe, 
+            net.reversteam.strangematter.recipe.RealityForgeRecipe recipe,
             net.minecraft.world.level.Level level) {
         try {
             net.minecraft.core.NonNullList<net.minecraft.world.item.crafting.Ingredient> ingredients = recipe.getIngredients();
             java.util.Map<String, Integer> shardInputs = recipe.getShardRequirements();
             net.minecraft.world.item.ItemStack resultStack = recipe.getResultItem(level.registryAccess());
-            
+
             java.util.List<net.minecraft.world.item.crafting.Ingredient> inputs = new java.util.ArrayList<>(ingredients);
-            
+
             String requiredResearch = recipe.getRequiredResearch();
             return new net.reversteam.strangematter.jei.recipes.RealityForgeRecipe(inputs, resultStack, shardInputs, requiredResearch);
         } catch (Exception e) {
@@ -100,7 +101,7 @@ public class StrangeMatterJeiPlugin implements IModPlugin {
             return null;
         }
     }
-    
+
     private void addInfoPages(IRecipeRegistration registration) {
         // Reality Forge info page
         registration.addIngredientInfo(

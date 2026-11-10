@@ -7,9 +7,9 @@ import net.minecraft.world.level.material.MapColor;
 import net.reversteam.strangematter.StrangeMatterMod;
 
 public class ResoniteTileStairsBlock extends StairBlock {
-    
+
     public ResoniteTileStairsBlock() {
-        super(() -> StrangeMatterMod.RESONITE_TILE_BLOCK.get().defaultBlockState(),
+        super(StrangeMatterMod.RESONITE_TILE_BLOCK.get().defaultBlockState(),
             BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_PURPLE)
                 .strength(3.0f, 6.0f)

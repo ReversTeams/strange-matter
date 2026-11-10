@@ -8,28 +8,28 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import javax.annotation.Nonnull;
 
 public class TemporalBloomConfiguredFeature extends BaseAnomalyConfiguredFeature {
-    
+
     @Override
     public boolean place(@Nonnull FeaturePlaceContext<NoneFeatureConfiguration> context) {
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
         BlockPos origin = context.origin();
-        
+
         // Use WorldGenUtils to efficiently find surface and ground
         WorldGenUtils.SurfaceInfo surfaceInfo = WorldGenUtils.findSurfaceAndGround(level, origin.getX(), origin.getZ());
         if (surfaceInfo == null) {
             return false; // No valid ground found
         }
-        
+
         // Spawn the anomaly a few blocks above the surface
         int surfaceY = surfaceInfo.surfacePos.getY();
         int anomalyY = surfaceY + 2 + random.nextInt(3);
         BlockPos anomalyPos = new BlockPos(origin.getX(), anomalyY, origin.getZ());
-        
+
         // Place a marker block that will spawn the entity on the next server tick
         // This defers entity spawning from the world generation thread to the main server thread
         var markerBlock = (net.reversteam.strangematter.block.AnomalySpawnerMarkerBlock) StrangeMatterMod.ANOMALY_SPAWNER_MARKER_BLOCK.get();
@@ -40,17 +40,17 @@ public class TemporalBloomConfiguredFeature extends BaseAnomalyConfiguredFeature
             return false;
         }
         level.scheduleTick(anomalyPos, markerBlock, 1);
-        
+
         // Place terrain modification (grass and ores) using base class
         placeAnomalousGrass(level, origin, random);
         placeOres(level, anomalyPos, surfaceY, random, StrangeMatterMod.CHRONO_SHARD_CRYSTAL.get());
-        
+
         // Place temporal-themed terrain (wheat fields) - special terrain for temporal blooms
         placeTemporalTerrain(level, origin, random);
-        
+
         return true;
     }
-    
+
     /**
      * Places temporal-themed terrain (wheat fields) around the origin position.
      * This is special terrain modification specific to temporal blooms.
@@ -59,27 +59,27 @@ public class TemporalBloomConfiguredFeature extends BaseAnomalyConfiguredFeature
     private void placeTemporalTerrain(WorldGenLevel level, BlockPos origin, RandomSource random) {
         int radius = getTerrainModificationRadius();
         float chance = getGrassPlacementChance();
-        
+
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 double distance = Math.sqrt(x * x + z * z);
-                
+
                 // Only place within the circle and with some randomness for patchiness
                 if (distance <= radius && random.nextFloat() < chance) {
                     // Find suitable surface position for farmland
-                    BlockPos surfacePos = WorldGenUtils.findAnomalousGrassPosition(level, 
+                    BlockPos surfacePos = WorldGenUtils.findAnomalousGrassPosition(level,
                         origin.getX() + x, origin.getZ() + z);
-                    
+
                     if (surfacePos != null) {
                         BlockState currentState = level.getBlockState(surfacePos);
-                        
+
                         // Check if we can place farmland here (ground blocks)
                         if (WorldGenUtils.isActualGround(currentState)) {
                             // Occasionally place tilled soil with wheat seeds
                             if (random.nextFloat() < 0.7f) { // 70% chance for wheat fields
                                 // Place farmland (tilled soil)
                                 level.setBlock(surfacePos, net.minecraft.world.level.block.Blocks.FARMLAND.defaultBlockState(), 3);
-                                
+
                                 // Place wheat seeds on the farmland
                                 BlockPos abovePos = surfacePos.above();
                                 if (level.getBlockState(abovePos).isAir()) {
@@ -93,9 +93,9 @@ public class TemporalBloomConfiguredFeature extends BaseAnomalyConfiguredFeature
             }
         }
     }
-    
+
     @Override
-    protected RegistryObject<Block> getShardOreBlock() {
+    protected java.util.function.Supplier<Block> getShardOreBlock() {
         return StrangeMatterMod.CHRONO_SHARD_ORE_BLOCK;
     }
 }
